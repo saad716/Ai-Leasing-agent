@@ -873,7 +873,10 @@
      Returns null if no listing pattern is found. */
   function parsePropertiesFromReply(raw) {
     if (!raw) return null;
-    const titleRe = /^\s*\d+\.\s*\*\*(.+?)\*\*\s*$/gm;
+    // No ^/$ anchors: a title is just "N. **Something**" wherever it occurs,
+    // so odd spacing/line-break variations from the webhook can never cause
+    // a property to be silently skipped.
+    const titleRe = /\d+\.\s*\*\*([^*]+?)\*\*/g;
     const titles = [];
     let m;
     while ((m = titleRe.exec(raw)) !== null) {
@@ -882,20 +885,39 @@
     if (titles.length === 0) return null;
 
     const intro = raw.slice(0, titles[0].start).trim();
-    const fieldRe = /\*\*([^*:]+):\*\*\s*([^*]+?)(?=(?:\s*-\s*\*\*)|\s*$)/g;
+    // Value = everything up to the next literal "**" (the next field's bold
+    // label, or nothing left). No end-of-string/dash lookahead required, so
+    // trailing punctuation or a missing trailing dash can't drop a field.
+    const fieldRe = /\*\*([^*:]+):\*\*\s*([^*]+)/g;
     const properties = [];
 
     for (let i = 0; i < titles.length; i++) {
       const blockStart = titles[i].end;
       const blockEnd = i + 1 < titles.length ? titles[i + 1].start : raw.length;
-      const block = raw.slice(blockStart, blockEnd);
+      // Only look at the first paragraph after the title, so trailing prose
+      // after the last item (e.g. "Let me know if you'd like a tour!")
+      // never bleeds into that property's fields.
+      // Only look at the lines that actually belong to this item: keep
+      // consuming lines while they still contain "**" (bold field markers or
+      // wrapped continuations); stop at the first plain-text line (e.g. a
+      // trailing "Let me know if you'd like a tour!" after the last item).
+      const rawBlock = raw.slice(blockStart, blockEnd).split(/\n\s*\n/)[0];
+      const keptLines = [];
+      for (const line of rawBlock.split('\n')) {
+        if (line.trim() === '' || line.includes('**')) {
+          keptLines.push(line);
+        } else {
+          break;
+        }
+      }
+      const block = keptLines.join('\n');
 
       const fields = {};
       let fm;
       fieldRe.lastIndex = 0;
       while ((fm = fieldRe.exec(block)) !== null) {
         const label = fm[1].trim().toLowerCase();
-        const value = fm[2].trim().replace(/^-+\s*/, '').replace(/[\s-]+$/, '');
+        const value = fm[2].replace(/\s+/g, ' ').trim().replace(/^-+\s*/, '').replace(/[\s-]+$/, '');
         if (value) fields[label] = value;
       }
 
@@ -903,6 +925,8 @@
       const priceNum = priceRaw.replace(/[^0-9.]/g, '');
       const avail = fields['availability date'] || fields['available'] || fields['move-in date'] || '';
 
+      // Always push the property, even if a field or two couldn't be parsed —
+      // every listed item must still get a card, just with what we have.
       properties.push({
         address:  titles[i].title,
         price:    priceNum || priceRaw || null,
