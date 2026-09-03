@@ -390,6 +390,7 @@
     font-family: 'SFMono-Regular', 'Menlo', 'Consolas', monospace;
     letter-spacing: 0.01em; margin-top: 1px;
   }
+  .prop-pets { font-size: 10.5px; color: var(--muted); line-height: 1.4; }
   .prop-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 7px; }
   .prop-btn {
     width: 100%; font-size: 12.5px; font-weight: 600; padding: 8px 10px;
@@ -429,6 +430,8 @@
     display: flex; gap: 12px; font-size: 12px; color: var(--ink);
     font-weight: 500; padding: 10px 0; border-top: 1px solid #EFEBE0;
   }
+  .prop-modal-pets { font-size: 12px; color: var(--ink); padding-top: 8px; line-height: 1.5; }
+  .prop-modal-pets strong { color: var(--c2); font-weight: 600; }
   .prop-modal-close {
     position: absolute; top: 10px; right: 10px;
     width: 26px; height: 26px; border-radius: 50%;
@@ -862,6 +865,59 @@
   ═══════════════════════════════════ */
   let propertyRegistry = {};
 
+  /* Detects a numbered property listing inside a markdown reply, e.g.:
+       "1. **Maple Grove Apartments - Unit 204**
+        - **Bedrooms:** 2 - **Price:** $1650 - **Availability Date:**
+        September 10, 2026 - **Pet Policy:** Cats and dogs allowed"
+     and converts each entry into a property object for the card UI.
+     Returns null if no listing pattern is found. */
+  function parsePropertiesFromReply(raw) {
+    if (!raw) return null;
+    const titleRe = /^\s*\d+\.\s*\*\*(.+?)\*\*\s*$/gm;
+    const titles = [];
+    let m;
+    while ((m = titleRe.exec(raw)) !== null) {
+      titles.push({ start: m.index, end: titleRe.lastIndex, title: m[1].trim() });
+    }
+    if (titles.length === 0) return null;
+
+    const intro = raw.slice(0, titles[0].start).trim();
+    const fieldRe = /\*\*([^*:]+):\*\*\s*([^*]+?)(?=(?:\s*-\s*\*\*)|\s*$)/g;
+    const properties = [];
+
+    for (let i = 0; i < titles.length; i++) {
+      const blockStart = titles[i].end;
+      const blockEnd = i + 1 < titles.length ? titles[i + 1].start : raw.length;
+      const block = raw.slice(blockStart, blockEnd);
+
+      const fields = {};
+      let fm;
+      fieldRe.lastIndex = 0;
+      while ((fm = fieldRe.exec(block)) !== null) {
+        const label = fm[1].trim().toLowerCase();
+        const value = fm[2].trim().replace(/^-+\s*/, '').replace(/[\s-]+$/, '');
+        if (value) fields[label] = value;
+      }
+
+      const priceRaw = fields['price'] || fields['rent'] || '';
+      const priceNum = priceRaw.replace(/[^0-9.]/g, '');
+      const avail = fields['availability date'] || fields['available'] || fields['move-in date'] || '';
+
+      properties.push({
+        address:  titles[i].title,
+        price:    priceNum || priceRaw || null,
+        priceSuffix: priceNum ? '/mo' : '',
+        beds:     fields['bedrooms'] || fields['beds'] || null,
+        baths:    fields['bathrooms'] || fields['baths'] || null,
+        sqft:     fields['sqft'] || fields['square feet'] || null,
+        badge:    avail ? ('Available ' + avail) : '',
+        pets:     fields['pet policy'] || fields['pets'] || ''
+      });
+    }
+
+    return { intro, properties };
+  }
+
   function appendPropertyCards(properties) {
     if (!Array.isArray(properties) || properties.length === 0) return;
     const m = document.getElementById('msgs');
@@ -893,6 +949,7 @@
             ${p.address ? `<div class="prop-title">${escHtml(p.address)}</div>` : ''}
             <div class="prop-price">${escHtml(price)}${priceSuffix ? `<span> ${escHtml(priceSuffix)}</span>` : ''}</div>
             ${metaParts.length ? `<div class="prop-meta">${metaParts.join(' &middot; ')}</div>` : ''}
+            ${p.pets ? `<div class="prop-pets">${escHtml(p.pets)}</div>` : ''}
             <div class="prop-actions">
               <button class="prop-btn view" onclick="showPropertyDetails('${key}')">View</button>
               <button class="prop-btn book" onclick="sendMessage(${JSON.stringify('Book a tour for ' + (p.address || 'this property'))})">Book tour</button>
@@ -940,6 +997,7 @@
           ${p.badge ? `<div class="prop-modal-address">${escHtml(p.badge)}</div>` : ''}
           <div class="prop-modal-price">${escHtml(price)}${priceSuffix ? `<span> ${escHtml(priceSuffix)}</span>` : ''}</div>
           ${metaParts.length ? `<div class="prop-modal-meta">${metaParts.map(x=>`<span>${x}</span>`).join('')}</div>` : ''}
+          ${p.pets ? `<div class="prop-modal-pets"><strong>Pets:</strong> ${escHtml(p.pets)}</div>` : ''}
         </div>
       </div>`;
 
@@ -1238,22 +1296,39 @@
         data.message || data.reply || data.output || data.text ||
         "Thanks for reaching out — I've got your message.";
 
-      const cleanReply = reply
+      const strippedReply = reply
         .replace(/\[show_payment\]/gi, '')
         .replace(/\[show_maintenance\]/gi, '')
         .replace(/\[show_properties\]/gi, '')
         .trim();
+
+      // Prefer structured data.properties from the webhook. If it isn't
+      // present, try to auto-detect a numbered property listing inside the
+      // plain-text reply (e.g. "1. **Building — Unit 204** - **Bedrooms:**
+      // 2 - **Price:** $1650 - ...") and turn it into cards instead of
+      // dumping the raw list as text.
+      let propertiesToShow = null;
+      let cleanReply = strippedReply;
+
+      if (Array.isArray(data.properties) && data.properties.length > 0) {
+        propertiesToShow = data.properties;
+      } else {
+        const parsed = parsePropertiesFromReply(strippedReply);
+        if (parsed && parsed.properties.length > 0) {
+          propertiesToShow = parsed.properties;
+          cleanReply = parsed.intro || 'Here are some available properties:';
+        }
+      }
 
       // Suggestion pills are AI-provided only (data.buttons) — no local fallback.
       appendBot(cleanReply, data.buttons);
 
       const wantsPayment    = data.action === 'show_payment'    || /\[show_payment\]/i.test(reply);
       const wantsMaintenance= data.action === 'show_maintenance'|| /\[show_maintenance\]/i.test(reply);
-      const wantsProperties = data.action === 'show_properties' || /\[show_properties\]/i.test(reply);
 
       if (wantsPayment) setTimeout(() => appendPaymentCard(), 700);
       if (wantsMaintenance) setTimeout(() => appendMaintenanceCard(), 700);
-      if (wantsProperties && Array.isArray(data.properties)) setTimeout(() => appendPropertyCards(data.properties), 700);
+      if (propertiesToShow) setTimeout(() => appendPropertyCards(propertiesToShow), 700);
 
     } catch (err) {
       document.getElementById(tid)?.remove();
