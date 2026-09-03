@@ -3,23 +3,26 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Leasing Assistant</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-<script src="https://js.stripe.com/v3/"></script>
+<title>AI Leasing Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
   :root {
-    /* ─── BRAND COLORS — swap these two per client ─── */
-    --c1: #1A56DB;
-    --c2: #0E9F6E;
-    --c1-tint: #e8f0fe;
+    /* ─── BRAND PALETTE — dark charcoal + warm brass, no blue ─── */
+    --c1: #1C1B19;          /* ink charcoal — gradient start */
+    --c2: #6B4A2B;          /* deep umber/bronze — gradient end */
+    --accent: #C79A4B;      /* brass / antique gold accent */
+    --accent-tint: #F6EFE0; /* warm cream tint (replaces old blue tint) */
+    --ink: #201F1C;
+    --muted: #7A7368;
+    --surface: #FAF8F4;     /* warm off-white chat surface */
   }
 
   html, body {
     height: 100%; height: 100dvh;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    background: #f0f2f5;
+    background: #ECE8E0;
     overflow: hidden;
   }
 
@@ -29,19 +32,19 @@
     width: 100%; height: 100%; height: 100dvh;
     display: flex; flex-direction: column;
     overflow: hidden;
-    background: #fff;
+    background: var(--surface);
   }
 
   @media (min-width: 600px) {
     body {
       align-items: center; justify-content: center;
-      background: #f0f2f5;
+      background: #ECE8E0;
     }
     .shell {
       max-width: 420px;
       height: 92vh; max-height: 820px; min-height: 500px;
       border-radius: 16px;
-      box-shadow: 0 8px 40px rgba(0,0,0,0.16), 0 2px 8px rgba(0,0,0,0.08);
+      box-shadow: 0 8px 40px rgba(0,0,0,0.28), 0 2px 8px rgba(0,0,0,0.14);
     }
   }
 
@@ -56,14 +59,11 @@
   .hdr-av {
     width: 44px; height: 44px; border-radius: 50%;
     overflow: hidden; flex-shrink: 0;
-    border: 2px solid rgba(255,255,255,0.35);
-    background: rgba(255,255,255,0.15);
+    border: 2px solid rgba(199,154,75,0.55);
+    background: rgba(255,255,255,0.08);
     display: flex; align-items: center; justify-content: center;
   }
-  .hdr-av img {
-    width: 100%; height: 100%; object-fit: cover;
-    border-radius: 50%;
-  }
+  .hdr-av svg { width: 24px; height: 24px; }
   .hdr-info { flex: 1; min-width: 0; }
   .hdr-name {
     font-size: 16px; font-weight: 700;
@@ -75,12 +75,12 @@
   }
   .hdr-agent-label {
     font-size: 10px; font-weight: 700;
-    color: rgba(255,255,255,0.55);
+    color: var(--accent);
     letter-spacing: 0.08em; text-transform: uppercase;
   }
   .agent-badge {
-    background: rgba(255,255,255,0.18);
-    border: 1px solid rgba(255,255,255,0.3);
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.22);
     color: #fff; font-size: 9px; font-weight: 600;
     padding: 2px 7px; border-radius: 20px;
     letter-spacing: 0.06em; text-transform: uppercase;
@@ -89,12 +89,12 @@
   .agent-badge::before {
     content: '';
     width: 6px; height: 6px; border-radius: 50%;
-    background: #4ADE80;
+    background: #7CC576;
     display: inline-block;
   }
   .hdr-close {
-    background: rgba(255,255,255,0.15);
-    border: none; color: rgba(255,255,255,0.7);
+    background: rgba(255,255,255,0.1);
+    border: none; color: rgba(255,255,255,0.65);
     width: 30px; height: 30px; border-radius: 50%;
     cursor: pointer; font-size: 16px;
     display: flex; align-items: center; justify-content: center;
@@ -104,7 +104,7 @@
   /* ─── SUBHEADER ─── */
   .subhdr {
     background: #fff;
-    border-bottom: 1px solid #e8eaed;
+    border-bottom: 1px solid #EAE5DA;
     padding: 7px 16px;
     display: flex; align-items: center; gap: 10px;
     flex-shrink: 0;
@@ -113,12 +113,12 @@
   .subhdr::-webkit-scrollbar { display: none; }
   .sub-item {
     display: flex; align-items: center; gap: 4px;
-    font-size: 10.5px; color: #5f6368; font-weight: 500;
+    font-size: 10.5px; color: var(--muted); font-weight: 500;
     white-space: nowrap; flex-shrink: 0;
     padding-right: 12px;
   }
   .sub-item:not(:last-child) {
-    border-right: 1px solid #e0e0e0;
+    border-right: 1px solid #E4DECF;
     margin-right: 2px;
   }
 
@@ -129,14 +129,14 @@
     padding: 16px 14px 8px;
     display: flex; flex-direction: column; gap: 14px;
     overscroll-behavior: contain;
-    background: #fff;
+    background: var(--surface);
   }
   .msgs::-webkit-scrollbar { width: 4px; }
-  .msgs::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 2px; }
+  .msgs::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 2px; }
 
   /* ─── DATE PILL ─── */
   .date-pill {
-    text-align: center; font-size: 11px; color: #9aa0a6;
+    text-align: center; font-size: 11px; color: var(--muted);
     font-weight: 500; letter-spacing: 0.02em;
     padding: 2px 0 4px;
   }
@@ -152,16 +152,14 @@
     background: linear-gradient(135deg, var(--c1), var(--c2));
     display: flex; align-items: center; justify-content: center;
   }
-  .agent-row-av img {
-    width: 100%; height: 100%; object-fit: cover; border-radius: 50%;
-  }
+  .agent-row-av svg { width: 15px; height: 15px; }
   .agent-row-name {
-    font-size: 11.5px; font-weight: 700; color: #202124;
+    font-size: 11.5px; font-weight: 700; color: var(--ink);
     letter-spacing: 0.01em;
   }
   .agent-row-badge {
-    font-size: 9px; font-weight: 700; color: var(--c1);
-    background: var(--c1-tint); padding: 1px 6px; border-radius: 10px;
+    font-size: 9px; font-weight: 700; color: var(--c2);
+    background: var(--accent-tint); padding: 1px 6px; border-radius: 10px;
     letter-spacing: 0.05em; text-transform: uppercase;
     display: flex; align-items: center; gap: 3px;
   }
@@ -169,7 +167,7 @@
     width: 9px; height: 9px;
   }
   .agent-row-time {
-    font-size: 10px; color: #9aa0a6; margin-left: auto;
+    font-size: 10px; color: var(--muted); margin-left: auto;
   }
 
   /* ─── MESSAGES ─── */
@@ -184,8 +182,8 @@
 
   .u-av {
     width: 28px; height: 28px; border-radius: 50%;
-    flex-shrink: 0; background: var(--c1-tint);
-    color: var(--c1); font-size: 11px; font-weight: 700;
+    flex-shrink: 0; background: var(--accent-tint);
+    color: var(--c2); font-size: 11px; font-weight: 700;
     display: flex; align-items: center; justify-content: center;
     align-self: flex-end;
   }
@@ -196,7 +194,7 @@
     line-height: 1.65; word-break: break-word;
   }
   .bub.b {
-    background: #f1f3f4; color: #202124;
+    background: #F1EEE6; color: var(--ink);
     border-top-left-radius: 4px;
   }
   .bub.u {
@@ -205,19 +203,19 @@
   }
 
   /* Markdown in bot bubble */
-  .bub.b strong { color: var(--c1); font-weight: 600; }
-  .bub.b em { font-style: italic; color: #5f6368; }
+  .bub.b strong { color: var(--c2); font-weight: 600; }
+  .bub.b em { font-style: italic; color: var(--muted); }
   .bub.b ul, .bub.b ol { margin: 6px 0 4px 18px; }
   .bub.b li { margin-bottom: 4px; line-height: 1.55; }
   .bub.b p { margin-bottom: 6px; }
   .bub.b p:last-child { margin-bottom: 0; }
-  .bub.b h3 { font-size: 14px; font-weight: 700; color: #202124; margin: 7px 0 4px; }
-  .bub.b a { color: var(--c1); text-decoration: underline; word-break: break-all; }
-  .bub.b code { background: #e8eaed; color: #202124; border-radius: 4px; padding: 1px 5px; font-size: 12px; font-family: monospace; }
-  .bub.b blockquote { border-left: 3px solid var(--c1); padding-left: 10px; margin: 6px 0; color: #5f6368; font-style: italic; }
-  .bub.b hr { border: none; border-top: 1px solid #e0e0e0; margin: 8px 0; }
+  .bub.b h3 { font-size: 14px; font-weight: 700; color: var(--ink); margin: 7px 0 4px; }
+  .bub.b a { color: var(--c2); text-decoration: underline; word-break: break-all; }
+  .bub.b code { background: #E8E2D3; color: var(--ink); border-radius: 4px; padding: 1px 5px; font-size: 12px; font-family: monospace; }
+  .bub.b blockquote { border-left: 3px solid var(--accent); padding-left: 10px; margin: 6px 0; color: var(--muted); font-style: italic; }
+  .bub.b hr { border: none; border-top: 1px solid #E4DECF; margin: 8px 0; }
 
-  /* ─── OPTION PILL BUTTONS ─── */
+  /* ─── OPTION PILL BUTTONS (AI-provided suggestions) ─── */
   .options-wrap {
     padding-left: 0;
     margin-top: 4px;
@@ -226,8 +224,8 @@
   }
   .opt-pill {
     background: #fff;
-    border: 1.5px solid var(--c1);
-    color: var(--c1);
+    border: 1.5px solid var(--accent);
+    color: var(--c2);
     font-size: 13px; font-weight: 500;
     padding: 7px 15px;
     border-radius: 50px;
@@ -238,91 +236,85 @@
     line-height: 1.35;
     font-family: 'Inter', sans-serif;
   }
-  .opt-pill:hover  { background: var(--c1); color: #fff; }
+  .opt-pill:hover  { background: var(--accent); color: #fff; }
   .opt-pill:active { transform: scale(0.97); }
-  .opt-pill:disabled { opacity: 0.45; cursor: not-allowed; border-color: #9aa0a6; color: #9aa0a6; }
+  .opt-pill:disabled { opacity: 0.45; cursor: not-allowed; border-color: #C9C2B2; color: #C9C2B2; }
 
   /* ─── TYPING ─── */
   .tdots {
     display: flex; gap: 4px; align-items: center;
-    padding: 11px 16px; background: #f1f3f4;
+    padding: 11px 16px; background: #F1EEE6;
     border-radius: 18px; border-top-left-radius: 4px;
     width: fit-content;
   }
-  .d { width: 6px; height: 6px; background: #9aa0a6; border-radius: 50%; opacity: 0.7; animation: bop 1.2s infinite; }
+  .d { width: 6px; height: 6px; background: var(--muted); border-radius: 50%; opacity: 0.7; animation: bop 1.2s infinite; }
   .d:nth-child(2) { animation-delay: .2s; }
   .d:nth-child(3) { animation-delay: .4s; }
   @keyframes bop { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-5px); } }
 
   /* ─── ERROR ─── */
-  .bub.err { background: #fce8e6; color: #c5221f; border-top-left-radius: 4px; }
+  .bub.err { background: #FBE8E6; color: #A6362C; border-top-left-radius: 4px; }
   .retry-btn {
     display: inline-block; margin-top: 6px;
-    background: #fff; border: 1px solid #f28b82;
-    color: #c5221f; font-size: 12px; padding: 4px 10px;
+    background: #fff; border: 1px solid #E5AFA8;
+    color: #A6362C; font-size: 12px; padding: 4px 10px;
     border-radius: 12px; cursor: pointer;
     font-family: 'Inter', sans-serif; transition: background 0.15s;
   }
-  .retry-btn:hover { background: #c5221f; color: #fff; }
+  .retry-btn:hover { background: #A6362C; color: #fff; }
 
   /* ─── CARD (shared: payment + maintenance) ─── */
   .card-wrap { max-width: 94%; animation: fadeUp 0.32s ease; }
   .card {
-    background: #fff; border: 1px solid #e0e0e0;
+    background: #fff; border: 1px solid #EAE5DA;
     border-radius: 16px; border-top-left-radius: 4px;
     overflow: hidden;
-    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+    box-shadow: 0 2px 16px rgba(28,27,25,0.1);
   }
   .card-hdr {
     background: linear-gradient(135deg, var(--c1) 0%, var(--c2) 100%);
     padding: 14px 16px 12px;
   }
   .card-hdr-title { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 2px; }
-  .card-hdr-sub { font-size: 10.5px; color: rgba(255,255,255,0.6); font-weight: 400; }
+  .card-hdr-sub { font-size: 10.5px; color: rgba(255,255,255,0.62); font-weight: 400; }
 
   /* Payment plan tiles */
   .ck-plans { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 14px 14px 10px; }
   .ck-plan {
-    border: 1.5px solid #e0e0e0; border-radius: 12px; padding: 10px 10px 8px;
+    border: 1.5px solid #E4DECF; border-radius: 12px; padding: 10px 10px 8px;
     cursor: pointer; transition: all 0.18s; text-align: center; position: relative;
-    background: #f8f9fa; -webkit-tap-highlight-color: transparent;
+    background: #FAF8F4; -webkit-tap-highlight-color: transparent;
   }
-  .ck-plan:hover { border-color: var(--c1); background: var(--c1-tint); }
+  .ck-plan:hover { border-color: var(--accent); background: var(--accent-tint); }
   .ck-plan.selected {
-    border-color: var(--c1); background: var(--c1-tint);
-    box-shadow: 0 2px 10px rgba(26,86,219,0.15);
+    border-color: var(--accent); background: var(--accent-tint);
+    box-shadow: 0 2px 10px rgba(199,154,75,0.22);
   }
   .ck-plan.selected::after {
     content: '✓'; position: absolute; top: 6px; right: 8px;
-    font-size: 11px; color: var(--c1); font-weight: 800;
+    font-size: 11px; color: var(--c2); font-weight: 800;
   }
-  .ck-plan-name { font-size: 10px; font-weight: 600; color: #5f6368; margin-bottom: 4px; letter-spacing: 0.04em; text-transform: uppercase; }
-  .ck-plan-price { font-size: 22px; font-weight: 700; color: #202124; line-height: 1; }
-  .ck-plan-note { font-size: 10px; color: #9aa0a6; margin-top: 4px; line-height: 1.3; }
+  .ck-plan-name { font-size: 10px; font-weight: 600; color: var(--muted); margin-bottom: 4px; letter-spacing: 0.04em; text-transform: uppercase; }
+  .ck-plan-price { font-size: 22px; font-weight: 700; color: var(--ink); line-height: 1; }
+  .ck-plan-note { font-size: 10px; color: var(--muted); margin-top: 4px; line-height: 1.3; }
 
   .card-fields { padding: 0 14px; display: flex; flex-direction: column; gap: 8px; }
   .ck-input, .ck-select, .ck-textarea {
     width: 100%; padding: 10px 13px;
-    border: 1.5px solid #e0e0e0; border-radius: 10px;
-    font-family: 'Inter', sans-serif; font-size: 14px; color: #202124;
-    background: #f8f9fa; outline: none;
+    border: 1.5px solid #E4DECF; border-radius: 10px;
+    font-family: 'Inter', sans-serif; font-size: 14px; color: var(--ink);
+    background: #FAF8F4; outline: none;
     transition: border-color 0.18s, box-shadow 0.18s;
   }
   .ck-textarea { resize: vertical; min-height: 64px; line-height: 1.5; }
   .ck-select { appearance: none; cursor: pointer;
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%235f6368' stroke-width='2'><polyline points='6 9 12 15 18 9'/></svg>");
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%237A7368' stroke-width='2'><polyline points='6 9 12 15 18 9'/></svg>");
     background-repeat: no-repeat; background-position: right 12px center;
   }
-  .ck-input:focus, .ck-select:focus, .ck-textarea:focus { border-color: var(--c1); box-shadow: 0 0 0 3px rgba(26,86,219,0.1); background: #fff; }
-  .ck-input::placeholder, .ck-textarea::placeholder { color: #9aa0a6; }
-  .field-label { font-size: 10.5px; font-weight: 600; color: #5f6368; letter-spacing: 0.03em; text-transform: uppercase; margin-bottom: -3px; }
-  .stripe-box {
-    border: 1.5px solid #e0e0e0; border-radius: 10px;
-    padding: 11px 13px; background: #f8f9fa;
-    transition: border-color 0.18s, box-shadow 0.18s;
-  }
-  .stripe-box.focused { border-color: var(--c1); box-shadow: 0 0 0 3px rgba(26,86,219,0.1); background: #fff; }
-  .ck-error { font-size: 12px; color: #c5221f; min-height: 16px; padding: 0 2px; }
+  .ck-input:focus, .ck-select:focus, .ck-textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(199,154,75,0.16); background: #fff; }
+  .ck-input::placeholder, .ck-textarea::placeholder { color: #A79F8E; }
+  .field-label { font-size: 10.5px; font-weight: 600; color: var(--muted); letter-spacing: 0.03em; text-transform: uppercase; margin-bottom: -3px; }
+  .ck-error { font-size: 12px; color: #A6362C; min-height: 16px; padding: 0 2px; }
   .ck-pay-btn {
     width: 100%; background: linear-gradient(135deg, var(--c1), var(--c2));
     color: #fff; border: none; border-radius: 12px;
@@ -344,10 +336,10 @@
   .ck-pay-btn.loading .spinner { display: block; }
   .ck-pay-btn.loading .btn-label { opacity: 0.7; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  .ck-divider { height: 1px; background: #e8eaed; margin: 10px 14px; }
+  .ck-divider { height: 1px; background: #EFEBE0; margin: 10px 14px; }
   .ck-footer {
     text-align: center; padding: 10px 14px 14px;
-    font-size: 10px; color: #9aa0a6;
+    font-size: 10px; color: var(--muted);
     display: flex; align-items: center; justify-content: center; gap: 5px;
   }
   .ck-footer svg { width: 11px; height: 11px; opacity: 0.6; }
@@ -355,57 +347,97 @@
   /* Maintenance urgency tiles */
   .urg-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
   .urg-tile {
-    border: 1.5px solid #e0e0e0; border-radius: 10px; padding: 8px 4px;
+    border: 1.5px solid #E4DECF; border-radius: 10px; padding: 8px 4px;
     text-align: center; cursor: pointer; transition: all 0.16s;
-    font-size: 11px; font-weight: 600; color: #5f6368; background: #f8f9fa;
+    font-size: 11px; font-weight: 600; color: var(--muted); background: #FAF8F4;
     -webkit-tap-highlight-color: transparent;
   }
-  .urg-tile.selected { border-color: var(--c1); background: var(--c1-tint); color: var(--c1); }
-  .urg-tile.selected.emergency { border-color: #c5221f; background: #fce8e6; color: #c5221f; }
+  .urg-tile.selected { border-color: var(--accent); background: var(--accent-tint); color: var(--c2); }
+  .urg-tile.selected.emergency { border-color: #C5473C; background: #FBE8E6; color: #A6362C; }
+
+  /* ─── PROPERTY RESULTS (Zillow-style cards) ─── */
+  .prop-scroll {
+    display: flex; gap: 10px; overflow-x: auto;
+    padding: 2px 2px 8px; margin-top: 2px;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+  }
+  .prop-scroll::-webkit-scrollbar { height: 4px; }
+  .prop-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 2px; }
+  .prop-card {
+    flex: 0 0 220px; scroll-snap-align: start;
+    background: #fff; border: 1px solid #EAE5DA; border-radius: 14px;
+    overflow: hidden; box-shadow: 0 2px 14px rgba(28,27,25,0.08);
+    display: flex; flex-direction: column;
+  }
+  .prop-img-wrap { position: relative; width: 100%; height: 128px; background: #E4DECF; overflow: hidden; }
+  .prop-img-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .prop-badge {
+    position: absolute; top: 8px; left: 8px;
+    background: rgba(28,27,25,0.82); color: #fff;
+    font-size: 9.5px; font-weight: 700; letter-spacing: 0.04em;
+    padding: 3px 8px; border-radius: 20px; text-transform: uppercase;
+  }
+  .prop-body { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 4px; }
+  .prop-price { font-size: 16.5px; font-weight: 700; color: var(--ink); line-height: 1.15; }
+  .prop-price span { font-size: 11px; font-weight: 500; color: var(--muted); }
+  .prop-title { font-size: 12.5px; font-weight: 600; color: var(--ink); line-height: 1.3; }
+  .prop-address { font-size: 11px; color: var(--muted); line-height: 1.35; margin-bottom: 2px; }
+  .prop-meta { display: flex; align-items: center; gap: 9px; font-size: 11px; color: var(--ink); font-weight: 500; }
+  .prop-meta span { display: flex; align-items: center; gap: 3px; }
+  .prop-meta svg { width: 12px; height: 12px; opacity: 0.55; }
+  .prop-cta {
+    margin-top: 6px; width: 100%; background: #fff;
+    border: 1.5px solid var(--accent); color: var(--c2);
+    font-size: 12px; font-weight: 600; padding: 7px 10px;
+    border-radius: 9px; cursor: pointer; transition: all 0.16s;
+    font-family: 'Inter', sans-serif;
+  }
+  .prop-cta:hover { background: var(--accent); color: #fff; }
 
   /* ─── SUCCESS ─── */
   .success-bub {
-    background: #e6f4ea; border: 1.5px solid #81c995;
+    background: #EAF4E9; border: 1.5px solid #9AC694;
     border-radius: 18px; border-top-left-radius: 4px;
     padding: 14px 16px; max-width: 85%;
   }
   .success-icon { font-size: 28px; margin-bottom: 8px; display: block; }
-  .success-title { font-size: 15px; font-weight: 700; color: #137333; margin-bottom: 5px; }
-  .success-msg { font-size: 13px; color: #1e5128; line-height: 1.6; }
-  .success-ref { margin-top: 8px; font-size: 11px; color: #34a853; font-weight: 600; }
+  .success-title { font-size: 15px; font-weight: 700; color: #2E6B2A; margin-bottom: 5px; }
+  .success-msg { font-size: 13px; color: #2C4A28; line-height: 1.6; }
+  .success-ref { margin-top: 8px; font-size: 11px; color: #3E8A38; font-weight: 600; }
 
   /* ─── INPUT AREA ─── */
   .inp-area {
     padding: 10px 14px;
     padding-bottom: calc(10px + env(safe-area-inset-bottom));
-    border-top: 1px solid #e8eaed;
+    border-top: 1px solid #EAE5DA;
     background: #fff; flex-shrink: 0;
   }
   .inp-row {
     display: flex; align-items: center; gap: 8px;
-    background: #f1f3f4; border: 1.5px solid transparent;
+    background: #F1EEE6; border: 1.5px solid transparent;
     border-radius: 26px; padding: 9px 10px 9px 16px;
     transition: border-color 0.2s, background 0.2s;
   }
   .inp-row:focus-within {
-    border-color: var(--c1); background: #fff;
-    box-shadow: 0 0 0 3px rgba(26,86,219,0.08);
+    border-color: var(--accent); background: #fff;
+    box-shadow: 0 0 0 3px rgba(199,154,75,0.14);
   }
   .inp-icon-btn {
     background: none; border: none; cursor: pointer;
-    color: #9aa0a6; padding: 2px; border-radius: 50%;
+    color: var(--muted); padding: 2px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     transition: color 0.15s;
     -webkit-tap-highlight-color: transparent;
   }
-  .inp-icon-btn:hover { color: #5f6368; }
+  .inp-icon-btn:hover { color: var(--ink); }
   .inp-icon-btn svg { width: 18px; height: 18px; }
   .inp-row input {
     flex: 1; background: none; border: none; outline: none;
-    color: #202124; font-family: 'Inter', sans-serif;
-    font-size: 15px; font-weight: 400; caret-color: var(--c1); min-width: 0;
+    color: var(--ink); font-family: 'Inter', sans-serif;
+    font-size: 15px; font-weight: 400; caret-color: var(--accent); min-width: 0;
   }
-  .inp-row input::placeholder { color: #9aa0a6; }
+  .inp-row input::placeholder { color: #A79F8E; }
   .send-btn {
     width: 36px; height: 36px; border-radius: 50%;
     background: linear-gradient(135deg, var(--c1), var(--c2));
@@ -419,8 +451,14 @@
   .send-btn svg { width: 16px; height: 16px; }
   .inp-footer {
     text-align: center; margin-top: 6px; font-size: 10px;
-    color: #9aa0a6; letter-spacing: 0.01em;
+    color: var(--muted); letter-spacing: 0.01em;
   }
+  .inp-footer-powered {
+    text-align: center; margin-top: 2px; font-size: 9.5px;
+    color: #B7AF9E; letter-spacing: 0.02em;
+  }
+  .inp-footer-powered a { color: #B7AF9E; text-decoration: none; }
+  .inp-footer-powered a:hover { color: var(--c2); text-decoration: underline; }
 </style>
 </head>
 <body>
@@ -428,20 +466,21 @@
 
   <!-- HEADER -->
   <div class="hdr">
-    <div class="hdr-av">
-      <!-- Replace src with the property's logo/headshot -->
-      <img
-        id="hdr-avatar-img"
-        src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=200&q=80"
-        alt="Agent"
-        onerror="this.style.display='none'; this.parentElement.innerHTML='<svg viewBox=\'0 0 28 28\' fill=\'none\'><circle cx=\'14\' cy=\'10\' r=\'5\' fill=\'rgba(255,255,255,0.5)\'/><path d=\'M6 26c0-5 3.6-9 8-9s8 4 8 9\' stroke=\'rgba(255,255,255,0.5)\' stroke-width=\'1.5\' stroke-linecap=\'round\'/></svg>';"
-      />
+    <div class="hdr-av" id="hdr-avatar-box">
+      <!-- AI bot glyph — no stock photo, this is an AI assistant not a person -->
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="4" y="8" width="16" height="11" rx="3"/>
+        <path d="M9 8V6a3 3 0 0 1 6 0v2"/>
+        <circle cx="9" cy="13.5" r="1.2" fill="var(--accent)" stroke="none"/>
+        <circle cx="15" cy="13.5" r="1.2" fill="var(--accent)" stroke="none"/>
+        <path d="M9 17h6"/>
+      </svg>
     </div>
     <div class="hdr-info">
       <div class="hdr-name" id="hdr-company-name">Sunrise Property Management</div>
       <div class="hdr-agent-row">
-        <span class="hdr-agent-label" id="hdr-agent-tag">LEASING</span>
-        <span class="agent-badge">AI Assistant</span>
+        <span class="hdr-agent-label" id="hdr-agent-tag">AI Leasing Assistant</span>
+        <span class="agent-badge">Online</span>
       </div>
     </div>
     <button class="hdr-close" aria-label="Close">✕</button>
@@ -480,6 +519,7 @@
       </button>
     </div>
     <div class="inp-footer" id="inp-footer-text">Sunrise Property Management · AI Leasing Assistant</div>
+    <div class="inp-footer-powered">⚡ Powered by <a href="https://botyama.com" target="_blank" rel="noopener">botyama.com</a></div>
   </div>
 
 </div>
@@ -488,23 +528,24 @@
   /* ═══════════════════════════════════════════════════════════
      CONFIG — this is the ONLY block you should need to touch
      to rebrand this widget for a new property management client.
+     NOTE: webhookUrl is left untouched per client request.
   ═══════════════════════════════════════════════════════════ */
   const CONFIG = {
     companyName:     'Sunrise Property Management',
-    agentTag:        'LEASING',                 // small label under the company name
+    agentTag:        'AI Leasing Assistant',      // shown in header + each message row
     footerText:      'Sunrise Property Management · AI Leasing Assistant',
-    avatarUrl:       'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=200&q=80',
-    primaryColor:    '#1A56DB',
-    secondaryColor:  '#0E9F6E',
+    poweredByUrl:    'https://botyama.com',
+    primaryColor:    '#1C1B19',   // ink charcoal
+    secondaryColor:  '#6B4A2B',   // umber bronze
+    accentColor:     '#C79A4B',   // brass / gold
     currency:        '$',
     applicationFee:  50,                          // fixed application fee amount
     webhookUrl:      'https://sdaew2.app.n8n.cloud/webhook-test/BOT TEST',
-    stripePublicKey: 'pk_live_XXXXXXXXXXXXXXXXXXXXXXXX',
 
     trustBadges: [
       '🏠 Verified Listings',
       '🔧 24/7 Maintenance',
-      '💳 Secure Payments',
+      '🔒 Secure Payments',
       '📅 Same-Day Tours'
     ],
 
@@ -516,28 +557,6 @@
       "I need to reach my leasing office"
     ],
 
-    // Rotated as fallback suggestion chips whenever the webhook doesn't send its own
-    followupSets: [
-      [
-        "What's included in rent?",
-        "What's the pet policy?",
-        "How do I renew my lease?",
-        "What's the guest policy?"
-      ],
-      [
-        "How do I schedule a tour?",
-        "What are the application requirements?",
-        "Is parking included?",
-        "When is rent due?"
-      ],
-      [
-        "How do I submit a maintenance request?",
-        "What's the late fee policy?",
-        "How do I give notice to move out?",
-        "I'm ready to apply 🏠"
-      ]
-    ],
-
     maintenanceCategories: [
       'Plumbing', 'Electrical', 'HVAC / Heating & Cooling', 'Appliance',
       'Pest Control', 'Locks / Keys', 'Windows / Doors', 'Other'
@@ -547,6 +566,7 @@
   // Apply brand colors as CSS variables
   document.documentElement.style.setProperty('--c1', CONFIG.primaryColor);
   document.documentElement.style.setProperty('--c2', CONFIG.secondaryColor);
+  document.documentElement.style.setProperty('--accent', CONFIG.accentColor);
 
   /* ═══════════════════════════════════
      SESSION
@@ -554,13 +574,6 @@
   const SESSION_ID = 'lease_' + Math.random().toString(36).slice(2, 11) + '_' + Date.now();
   let isBusy = false;
   let lastUserMessage = '';
-  let followupIndex = 0;
-
-  function getFollowupOptions() {
-    const opts = CONFIG.followupSets[followupIndex % CONFIG.followupSets.length];
-    followupIndex++;
-    return opts;
-  }
 
   /* ═══════════════════════════════════
      MARKDOWN PARSER
@@ -602,7 +615,7 @@
     const el = document.getElementById('msgs');
     setTimeout(()=>{ el.scrollTop = el.scrollHeight; }, 40);
   }
-  function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
   function getTime() {
     return new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
@@ -620,20 +633,23 @@
   }
 
   /* ═══════════════════════════════════
-     AGENT ROW HTML
+     AGENT ROW HTML (bot glyph, no stock photos)
   ═══════════════════════════════════ */
   function agentRowHTML() {
     return `
       <div class="agent-row">
         <div class="agent-row-av">
-          <img src="${CONFIG.avatarUrl}" alt="Agent"
-            onerror="this.style.display='none'"
-          />
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="8" width="16" height="11" rx="3"/>
+            <path d="M9 8V6a3 3 0 0 1 6 0v2"/>
+            <circle cx="9" cy="13.5" r="1.1" fill="#fff" stroke="none"/>
+            <circle cx="15" cy="13.5" r="1.1" fill="#fff" stroke="none"/>
+          </svg>
         </div>
         <span class="agent-row-name">${escHtml(CONFIG.agentTag)}</span>
         <span class="agent-row-badge">
           <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 2a5 5 0 110 10A5 5 0 018 3zm-.75 2.5v3.25l2.5 1.5.75-1.25-2-1.2V5.5h-1.25z"/></svg>
-          AI ASSISTANT
+          AI
         </span>
         <span class="agent-row-time">${getTime()}</span>
       </div>`;
@@ -645,7 +661,6 @@
   function renderOpening() {
     document.getElementById('hdr-company-name').textContent = CONFIG.companyName;
     document.getElementById('hdr-agent-tag').textContent = CONFIG.agentTag;
-    document.getElementById('hdr-avatar-img').src = CONFIG.avatarUrl;
     document.getElementById('inp-footer-text').textContent = CONFIG.footerText;
 
     const tb = document.getElementById('trust-bar');
@@ -668,7 +683,7 @@
       <div class="msg">
         <div class="bub b">
           <p>Hi there 👋</p>
-          <p>I'm the ${escHtml(CONFIG.companyName)} Leasing Assistant. What can I help you with today?</p>
+          <p>I'm the ${escHtml(CONFIG.companyName)} AI Leasing Assistant. What can I help you with today?</p>
         </div>
       </div>
     `;
@@ -698,7 +713,7 @@
     grp.className = 'msg-group';
     grp.innerHTML = `
       <div style="display:flex;justify-content:flex-end;margin-bottom:4px;">
-        <span style="font-size:10px;color:#9aa0a6;margin-right:4px;">${getTime()}</span>
+        <span style="font-size:10px;color:var(--muted);margin-right:4px;">${getTime()}</span>
       </div>
       <div class="msg u">
         <div class="u-av">👤</div>
@@ -726,6 +741,9 @@
 
   /* ═══════════════════════════════════
      APPEND BOT MESSAGE + OPTIONS
+     Suggestion pills come ONLY from the AI (data.buttons).
+     If the AI doesn't send any, no pills are shown —
+     no hardcoded fallback suggestions.
   ═══════════════════════════════════ */
   function appendBot(rawContent, options) {
     const m = document.getElementById('msgs');
@@ -740,22 +758,19 @@
       </div>`;
     m.appendChild(grp);
 
-    // Option pills: use webhook-provided options or fallback
-    const pillOptions = (Array.isArray(options) && options.length > 0)
-      ? options
-      : getFollowupOptions();
-
-    const optsDiv = document.createElement('div');
-    optsDiv.className = 'options-wrap';
-    optsDiv.id = optId;
-    pillOptions.forEach(label => {
-      const btn = document.createElement('button');
-      btn.className = 'opt-pill';
-      btn.textContent = label;
-      btn.onclick = () => { removeOptions(optId); sendMessage(label); };
-      optsDiv.appendChild(btn);
-    });
-    m.appendChild(optsDiv);
+    if (Array.isArray(options) && options.length > 0) {
+      const optsDiv = document.createElement('div');
+      optsDiv.className = 'options-wrap';
+      optsDiv.id = optId;
+      options.forEach(label => {
+        const btn = document.createElement('button');
+        btn.className = 'opt-pill';
+        btn.textContent = label;
+        btn.onclick = () => { removeOptions(optId); sendMessage(label); };
+        optsDiv.appendChild(btn);
+      });
+      m.appendChild(optsDiv);
+    }
     scrollB();
   }
 
@@ -785,10 +800,67 @@
   }
 
   /* ═══════════════════════════════════
-     PAYMENT CARD (rent / application fee)
+     PROPERTY RESULTS — Zillow-style cards
+     Triggered when the webhook reply includes:
+       data.properties: [{
+         image, title, address, price, priceSuffix,
+         beds, baths, sqft, badge
+       }, ...]
+     and/or data.action === 'show_properties' /
+     the reply contains [show_properties].
   ═══════════════════════════════════ */
-  let stripeInstance = null;
-  let cardElement    = null;
+  function bedBathSqftIcon(type) {
+    if (type === 'bed') return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 18v-6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v6"/><path d="M2 18h20"/><path d="M4 12V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v4"/></svg>';
+    if (type === 'bath') return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16v3a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5v-3z"/><path d="M6 12V6a2 2 0 0 1 3.5-1.3"/><line x1="2" y1="12" x2="22" y2="12"/></svg>';
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>';
+  }
+
+  function appendPropertyCards(properties) {
+    if (!Array.isArray(properties) || properties.length === 0) return;
+    const m = document.getElementById('msgs');
+    const grp = document.createElement('div');
+    grp.className = 'msg-group';
+
+    const cardsHtml = properties.map(p => {
+      const img = p.image
+        ? `<img src="${escHtml(p.image)}" alt="${escHtml(p.title || 'Property photo')}" onerror="this.closest('.prop-img-wrap').innerHTML='<div style=\\'display:flex;align-items:center;justify-content:center;height:100%;color:#A79F8E;font-size:11px;\\'>No photo available</div>'"/>`
+        : `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#A79F8E;font-size:11px;">No photo available</div>`;
+
+      const price = p.price ? `${CONFIG.currency}${p.price}` : 'Contact for price';
+      const priceSuffix = p.priceSuffix || (p.price ? '/mo' : '');
+
+      return `
+        <div class="prop-card">
+          <div class="prop-img-wrap">
+            ${img}
+            ${p.badge ? `<div class="prop-badge">${escHtml(p.badge)}</div>` : ''}
+          </div>
+          <div class="prop-body">
+            <div class="prop-price">${escHtml(price)}${priceSuffix ? `<span> ${escHtml(priceSuffix)}</span>` : ''}</div>
+            ${p.title ? `<div class="prop-title">${escHtml(p.title)}</div>` : ''}
+            ${p.address ? `<div class="prop-address">${escHtml(p.address)}</div>` : ''}
+            <div class="prop-meta">
+              ${p.beds != null ? `<span>${bedBathSqftIcon('bed')} ${escHtml(p.beds)} bd</span>` : ''}
+              ${p.baths != null ? `<span>${bedBathSqftIcon('bath')} ${escHtml(p.baths)} ba</span>` : ''}
+              ${p.sqft != null ? `<span>${bedBathSqftIcon('sqft')} ${escHtml(p.sqft)} sqft</span>` : ''}
+            </div>
+            <button class="prop-cta" onclick="sendMessage(${JSON.stringify('Tell me more about ' + (p.title || p.address || 'this property'))})">View details</button>
+          </div>
+        </div>`;
+    }).join('');
+
+    grp.innerHTML = `${agentRowHTML()}<div class="prop-scroll">${cardsHtml}</div>`;
+    m.appendChild(grp);
+    scrollB();
+  }
+
+  /* ═══════════════════════════════════
+     PAYMENT CARD — Stripe removed.
+     Collects payment details and sends a
+     payment link request through the webhook;
+     the office follows up by email with a
+     secure payment link.
+  ═══════════════════════════════════ */
   let selectedAmount = CONFIG.applicationFee;
   let selectedPlan   = 'Application Fee';
 
@@ -803,8 +875,8 @@
       <div class="card-wrap">
         <div class="card">
           <div class="card-hdr">
-            <div class="card-hdr-title">💳 Make a Payment</div>
-            <div class="card-hdr-sub">Secure checkout · Powered by Stripe</div>
+            <div class="card-hdr-title">💳 Request a Payment Link</div>
+            <div class="card-hdr-sub">We'll email you a secure link to pay</div>
           </div>
           <div class="ck-plans">
             <div class="ck-plan selected" id="plan-appfee" onclick="selectPlan('appfee')">
@@ -824,45 +896,23 @@
                    placeholder="Rent amount (${CONFIG.currency})" style="display:none;"/>
             <input class="ck-input" type="text"  id="ck-name"  placeholder="Full Name" autocomplete="name"/>
             <input class="ck-input" type="email" id="ck-email" placeholder="Email Address" autocomplete="email"/>
-            <div id="stripe-card-element" class="stripe-box"></div>
             <div id="ck-error" class="ck-error"></div>
           </div>
           <div class="ck-divider"></div>
           <div style="padding:0 14px;">
             <button class="ck-pay-btn" id="ck-pay-btn" onclick="handlePayment()">
               <div class="spinner"></div>
-              <span class="btn-label">Pay ${CONFIG.currency}${CONFIG.applicationFee} Securely 🔒</span>
+              <span class="btn-label">Send Payment Link 🔒</span>
             </button>
           </div>
           <div class="ck-footer">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            256-bit SSL Encrypted
+            Your details are sent securely to our leasing office
           </div>
         </div>
       </div>`;
     m.appendChild(grp);
     scrollB();
-    initStripe();
-  }
-
-  function initStripe() {
-    stripeInstance = Stripe(CONFIG.stripePublicKey);
-    const elements = stripeInstance.elements({
-      fonts: [{ cssSrc: 'https://fonts.googleapis.com/css2?family=Inter:wght@400&display=swap' }]
-    });
-    cardElement = elements.create('card', {
-      style: {
-        base: {
-          fontFamily: "'Inter', sans-serif", fontSize: '14px', color: '#202124',
-          '::placeholder': { color: '#9aa0a6' }
-        },
-        invalid: { color: '#c5221f' }
-      }
-    });
-    cardElement.mount('#stripe-card-element');
-    cardElement.on('focus',  () => document.getElementById('stripe-card-element')?.classList.add('focused'));
-    cardElement.on('blur',   () => document.getElementById('stripe-card-element')?.classList.remove('focused'));
-    cardElement.on('change', (e) => { document.getElementById('ck-error').textContent = e.error ? e.error.message : ''; });
   }
 
   function selectPlan(plan) {
@@ -873,20 +923,15 @@
       selectedPlan = 'Application Fee'; selectedAmount = CONFIG.applicationFee;
       document.getElementById('plan-appfee').classList.add('selected');
       rentInput.style.display = 'none';
-      btn.querySelector('.btn-label').textContent = `Pay ${CONFIG.currency}${selectedAmount} Securely 🔒`;
+      btn.querySelector('.btn-label').textContent = `Send Payment Link 🔒`;
     } else {
       selectedPlan = 'Rent Payment';
       document.getElementById('plan-rent').classList.add('selected');
       rentInput.style.display = 'block';
       selectedAmount = parseFloat(rentInput.value) || 0;
-      btn.querySelector('.btn-label').textContent = selectedAmount > 0
-        ? `Pay ${CONFIG.currency}${selectedAmount.toFixed(2)} Securely 🔒`
-        : `Enter rent amount above`;
+      btn.querySelector('.btn-label').textContent = `Send Payment Link 🔒`;
       rentInput.oninput = () => {
         selectedAmount = parseFloat(rentInput.value) || 0;
-        btn.querySelector('.btn-label').textContent = selectedAmount > 0
-          ? `Pay ${CONFIG.currency}${selectedAmount.toFixed(2)} Securely 🔒`
-          : `Enter rent amount above`;
       };
     }
   }
@@ -899,38 +944,35 @@
     if (!unit) { errEl.textContent = 'Please enter your unit / apartment number.'; return; }
     if (!name) { errEl.textContent = 'Please enter your full name.'; return; }
     if (!email || !email.includes('@')) { errEl.textContent = 'Please enter a valid email address.'; return; }
-    if (!selectedAmount || selectedAmount <= 0) { errEl.textContent = 'Please enter a valid amount.'; return; }
+    if (selectedPlan === 'Rent Payment' && (!selectedAmount || selectedAmount <= 0)) {
+      errEl.textContent = 'Please enter a valid rent amount.'; return;
+    }
     errEl.textContent = '';
     const btn = document.getElementById('ck-pay-btn');
     btn.disabled = true; btn.classList.add('loading');
     try {
-      const intentRes = await fetch(CONFIG.webhookUrl, {
+      const res = await fetch(CONFIG.webhookUrl, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'create_payment_intent', amount: selectedAmount, plan: selectedPlan, unit, name, email, sessionId: SESSION_ID })
+        body: JSON.stringify({
+          action: 'request_payment_link', amount: selectedAmount, plan: selectedPlan,
+          unit, name, email, sessionId: SESSION_ID
+        })
       });
-      if (!intentRes.ok) throw new Error('Could not initiate payment. Please try again.');
-      const intentData = await intentRes.json();
-      if (!intentData.clientSecret) throw new Error('Payment setup failed. Please try again.');
-      const result = await stripeInstance.confirmCardPayment(intentData.clientSecret, {
-        payment_method: { card: cardElement, billing_details: { name, email } }
-      });
-      if (result.error) {
-        errEl.textContent = result.error.message;
-        btn.disabled = false; btn.classList.remove('loading'); return;
-      }
-      const paymentId = result.paymentIntent.id;
+      if (!res.ok) throw new Error('Could not send your request. Please try again.');
+      const data = await res.json().catch(() => ({}));
       document.getElementById('payment-card')?.remove();
-      appendPaymentSuccess(name, email, selectedAmount, selectedPlan, paymentId);
+      appendPaymentSuccess(name, email, selectedAmount, selectedPlan, data.reference);
     } catch (err) {
       errEl.textContent = err.message || 'Something went wrong. Please try again.';
       btn.disabled = false; btn.classList.remove('loading');
     }
   }
 
-  function appendPaymentSuccess(name, email, amount, plan, paymentId) {
+  function appendPaymentSuccess(name, email, amount, plan, reference) {
     const m = document.getElementById('msgs');
     const firstName = name.split(' ')[0];
-    const refShort  = paymentId ? paymentId.slice(-8).toUpperCase() : '--------';
+    const refShort  = reference ? String(reference).slice(-8).toUpperCase() : Math.random().toString(36).slice(2, 8).toUpperCase();
+    const amountTxt = amount ? `${CONFIG.currency}${(+amount).toFixed(2)}` : '';
     const grp = document.createElement('div');
     grp.className = 'msg-group';
     grp.innerHTML = `
@@ -938,10 +980,10 @@
       <div class="msg">
         <div class="success-bub">
           <span class="success-icon">✅</span>
-          <div class="success-title">Payment Received, ${escHtml(firstName)}!</div>
+          <div class="success-title">Request Received, ${escHtml(firstName)}!</div>
           <div class="success-msg">
-            Your ${escHtml(plan)} of <strong>${CONFIG.currency}${amount.toFixed ? amount.toFixed(2) : amount}</strong> was successful.
-            A receipt has been sent to <strong>${escHtml(email)}</strong>.
+            We're preparing a secure payment link for your ${escHtml(plan)}${amountTxt ? ` of <strong>${amountTxt}</strong>` : ''}.
+            It will be sent to <strong>${escHtml(email)}</strong> shortly.
           </div>
           <div class="success-ref">Ref: #${refShort}</div>
         </div>
@@ -1035,7 +1077,7 @@
         })
       });
       if (!res.ok) throw new Error('Could not submit your request. Please try again.');
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       document.getElementById('maintenance-card')?.remove();
       appendMaintenanceSuccess(name, category, selectedUrgency, data.ticketId);
     } catch (err) {
@@ -1105,16 +1147,19 @@
       const cleanReply = reply
         .replace(/\[show_payment\]/gi, '')
         .replace(/\[show_maintenance\]/gi, '')
+        .replace(/\[show_properties\]/gi, '')
         .trim();
 
-      // Pass webhook options if provided, else undefined (fallback kicks in)
+      // Suggestion pills are AI-provided only (data.buttons) — no local fallback.
       appendBot(cleanReply, data.buttons);
 
-      const wantsPayment = data.action === 'show_payment' || /\[show_payment\]/i.test(reply);
-      const wantsMaintenance = data.action === 'show_maintenance' || /\[show_maintenance\]/i.test(reply);
+      const wantsPayment    = data.action === 'show_payment'    || /\[show_payment\]/i.test(reply);
+      const wantsMaintenance= data.action === 'show_maintenance'|| /\[show_maintenance\]/i.test(reply);
+      const wantsProperties = data.action === 'show_properties' || /\[show_properties\]/i.test(reply);
 
       if (wantsPayment) setTimeout(() => appendPaymentCard(), 700);
       if (wantsMaintenance) setTimeout(() => appendMaintenanceCard(), 700);
+      if (wantsProperties && Array.isArray(data.properties)) setTimeout(() => appendPropertyCards(data.properties), 700);
 
     } catch (err) {
       document.getElementById(tid)?.remove();
