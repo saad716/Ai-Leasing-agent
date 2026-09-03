@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Leasing Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://js.stripe.com/v3/"></script>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    /* ─── BRAND COLORS — swap these two per client ─── */
+    --c1: #1A56DB;
+    --c2: #0E9F6E;
+    --c1-tint: #e8f0fe;
+  }
+
+  html, body {
+    height: 100%; height: 100dvh;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #f0f2f5;
+    overflow: hidden;
+  }
+
+  body { display: flex; flex-direction: column; }
+
+  .shell {
+    width: 100%; height: 100%; height: 100dvh;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    background: #fff;
+  }
+
+  @media (min-width: 600px) {
+    body {
+      align-items: center; justify-content: center;
+      background: #f0f2f5;
+    }
+    .shell {
+      max-width: 420px;
+      height: 92vh; max-height: 820px; min-height: 500px;
+      border-radius: 16px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.16), 0 2px 8px rgba(0,0,0,0.08);
+    }
+  }
+
+  /* ─── HEADER ─── */
+  .hdr {
+    background: linear-gradient(135deg, var(--c1) 0%, var(--c2) 100%);
+    padding: 16px 18px 14px;
+    padding-top: calc(16px + env(safe-area-inset-top));
+    display: flex; align-items: center; gap: 13px;
+    flex-shrink: 0;
+  }
+  .hdr-av {
+    width: 44px; height: 44px; border-radius: 50%;
+    overflow: hidden; flex-shrink: 0;
+    border: 2px solid rgba(255,255,255,0.35);
+    background: rgba(255,255,255,0.15);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .hdr-av img {
+    width: 100%; height: 100%; object-fit: cover;
+    border-radius: 50%;
+  }
+  .hdr-info { flex: 1; min-width: 0; }
+  .hdr-name {
+    font-size: 16px; font-weight: 700;
+    color: #fff; letter-spacing: -0.01em; line-height: 1.2;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .hdr-agent-row {
+    display: flex; align-items: center; gap: 5px; margin-top: 3px;
+  }
+  .hdr-agent-label {
+    font-size: 10px; font-weight: 700;
+    color: rgba(255,255,255,0.55);
+    letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .agent-badge {
+    background: rgba(255,255,255,0.18);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: #fff; font-size: 9px; font-weight: 600;
+    padding: 2px 7px; border-radius: 20px;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    display: flex; align-items: center; gap: 3px;
+  }
+  .agent-badge::before {
+    content: '';
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #4ADE80;
+    display: inline-block;
+  }
+  .hdr-close {
+    background: rgba(255,255,255,0.15);
+    border: none; color: rgba(255,255,255,0.7);
+    width: 30px; height: 30px; border-radius: 50%;
+    cursor: pointer; font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* ─── SUBHEADER ─── */
+  .subhdr {
+    background: #fff;
+    border-bottom: 1px solid #e8eaed;
+    padding: 7px 16px;
+    display: flex; align-items: center; gap: 10px;
+    flex-shrink: 0;
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+  }
+  .subhdr::-webkit-scrollbar { display: none; }
+  .sub-item {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 10.5px; color: #5f6368; font-weight: 500;
+    white-space: nowrap; flex-shrink: 0;
+    padding-right: 12px;
+  }
+  .sub-item:not(:last-child) {
+    border-right: 1px solid #e0e0e0;
+    margin-right: 2px;
+  }
+
+  /* ─── MESSAGES ─── */
+  .msgs {
+    flex: 1; overflow-y: auto; overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding: 16px 14px 8px;
+    display: flex; flex-direction: column; gap: 14px;
+    overscroll-behavior: contain;
+    background: #fff;
+  }
+  .msgs::-webkit-scrollbar { width: 4px; }
+  .msgs::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 2px; }
+
+  /* ─── DATE PILL ─── */
+  .date-pill {
+    text-align: center; font-size: 11px; color: #9aa0a6;
+    font-weight: 500; letter-spacing: 0.02em;
+    padding: 2px 0 4px;
+  }
+
+  /* ─── AGENT ROW (avatar + name + time) ─── */
+  .agent-row {
+    display: flex; align-items: center; gap: 7px;
+    margin-bottom: 6px;
+  }
+  .agent-row-av {
+    width: 28px; height: 28px; border-radius: 50%;
+    overflow: hidden; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--c1), var(--c2));
+    display: flex; align-items: center; justify-content: center;
+  }
+  .agent-row-av img {
+    width: 100%; height: 100%; object-fit: cover; border-radius: 50%;
+  }
+  .agent-row-name {
+    font-size: 11.5px; font-weight: 700; color: #202124;
+    letter-spacing: 0.01em;
+  }
+  .agent-row-badge {
+    font-size: 9px; font-weight: 700; color: var(--c1);
+    background: var(--c1-tint); padding: 1px 6px; border-radius: 10px;
+    letter-spacing: 0.05em; text-transform: uppercase;
+    display: flex; align-items: center; gap: 3px;
+  }
+  .agent-row-badge svg {
+    width: 9px; height: 9px;
+  }
+  .agent-row-time {
+    font-size: 10px; color: #9aa0a6; margin-left: auto;
+  }
+
+  /* ─── MESSAGES ─── */
+  .msg-group { animation: fadeUp 0.22s ease; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .msg { display: flex; gap: 8px; margin-bottom: 4px; }
+  .msg.u { flex-direction: row-reverse; }
+
+  .u-av {
+    width: 28px; height: 28px; border-radius: 50%;
+    flex-shrink: 0; background: var(--c1-tint);
+    color: var(--c1); font-size: 11px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    align-self: flex-end;
+  }
+
+  .bub {
+    max-width: 78%; padding: 10px 14px;
+    border-radius: 18px; font-size: 14px;
+    line-height: 1.65; word-break: break-word;
+  }
+  .bub.b {
+    background: #f1f3f4; color: #202124;
+    border-top-left-radius: 4px;
+  }
+  .bub.u {
+    background: linear-gradient(135deg, var(--c1), var(--c2));
+    color: #fff; border-top-right-radius: 4px;
+  }
+
+  /* Markdown in bot bubble */
+  .bub.b strong { color: var(--c1); font-weight: 600; }
+  .bub.b em { font-style: italic; color: #5f6368; }
+  .bub.b ul, .bub.b ol { margin: 6px 0 4px 18px; }
+  .bub.b li { margin-bottom: 4px; line-height: 1.55; }
+  .bub.b p { margin-bottom: 6px; }
+  .bub.b p:last-child { margin-bottom: 0; }
+  .bub.b h3 { font-size: 14px; font-weight: 700; color: #202124; margin: 7px 0 4px; }
+  .bub.b a { color: var(--c1); text-decoration: underline; word-break: break-all; }
+  .bub.b code { background: #e8eaed; color: #202124; border-radius: 4px; padding: 1px 5px; font-size: 12px; font-family: monospace; }
+  .bub.b blockquote { border-left: 3px solid var(--c1); padding-left: 10px; margin: 6px 0; color: #5f6368; font-style: italic; }
+  .bub.b hr { border: none; border-top: 1px solid #e0e0e0; margin: 8px 0; }
+
+  /* ─── OPTION PILL BUTTONS ─── */
+  .options-wrap {
+    padding-left: 0;
+    margin-top: 4px;
+    display: flex; flex-wrap: wrap; gap: 7px;
+    animation: fadeUp 0.25s ease 0.1s both;
+  }
+  .opt-pill {
+    background: #fff;
+    border: 1.5px solid var(--c1);
+    color: var(--c1);
+    font-size: 13px; font-weight: 500;
+    padding: 7px 15px;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.16s;
+    -webkit-tap-highlight-color: transparent;
+    white-space: normal; text-align: center;
+    line-height: 1.35;
+    font-family: 'Inter', sans-serif;
+  }
+  .opt-pill:hover  { background: var(--c1); color: #fff; }
+  .opt-pill:active { transform: scale(0.97); }
+  .opt-pill:disabled { opacity: 0.45; cursor: not-allowed; border-color: #9aa0a6; color: #9aa0a6; }
+
+  /* ─── TYPING ─── */
+  .tdots {
+    display: flex; gap: 4px; align-items: center;
+    padding: 11px 16px; background: #f1f3f4;
+    border-radius: 18px; border-top-left-radius: 4px;
+    width: fit-content;
+  }
+  .d { width: 6px; height: 6px; background: #9aa0a6; border-radius: 50%; opacity: 0.7; animation: bop 1.2s infinite; }
+  .d:nth-child(2) { animation-delay: .2s; }
+  .d:nth-child(3) { animation-delay: .4s; }
+  @keyframes bop { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-5px); } }
+
+  /* ─── ERROR ─── */
+  .bub.err { background: #fce8e6; color: #c5221f; border-top-left-radius: 4px; }
+  .retry-btn {
+    display: inline-block; margin-top: 6px;
+    background: #fff; border: 1px solid #f28b82;
+    color: #c5221f; font-size: 12px; padding: 4px 10px;
+    border-radius: 12px; cursor: pointer;
+    font-family: 'Inter', sans-serif; transition: background 0.15s;
+  }
+  .retry-btn:hover { background: #c5221f; color: #fff; }
+
+  /* ─── CARD (shared: payment + maintenance) ─── */
+  .card-wrap { max-width: 94%; animation: fadeUp 0.32s ease; }
+  .card {
+    background: #fff; border: 1px solid #e0e0e0;
+    border-radius: 16px; border-top-left-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+  }
+  .card-hdr {
+    background: linear-gradient(135deg, var(--c1) 0%, var(--c2) 100%);
+    padding: 14px 16px 12px;
+  }
+  .card-hdr-title { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 2px; }
+  .card-hdr-sub { font-size: 10.5px; color: rgba(255,255,255,0.6); font-weight: 400; }
+
+  /* Payment plan tiles */
+  .ck-plans { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 14px 14px 10px; }
+  .ck-plan {
+    border: 1.5px solid #e0e0e0; border-radius: 12px; padding: 10px 10px 8px;
+    cursor: pointer; transition: all 0.18s; text-align: center; position: relative;
+    background: #f8f9fa; -webkit-tap-highlight-color: transparent;
+  }
+  .ck-plan:hover { border-color: var(--c1); background: var(--c1-tint); }
+  .ck-plan.selected {
+    border-color: var(--c1); background: var(--c1-tint);
+    box-shadow: 0 2px 10px rgba(26,86,219,0.15);
+  }
+  .ck-plan.selected::after {
+    content: '✓'; position: absolute; top: 6px; right: 8px;
+    font-size: 11px; color: var(--c1); font-weight: 800;
+  }
+  .ck-plan-name { font-size: 10px; font-weight: 600; color: #5f6368; margin-bottom: 4px; letter-spacing: 0.04em; text-transform: uppercase; }
+  .ck-plan-price { font-size: 22px; font-weight: 700; color: #202124; line-height: 1; }
+  .ck-plan-note { font-size: 10px; color: #9aa0a6; margin-top: 4px; line-height: 1.3; }
+
+  .card-fields { padding: 0 14px; display: flex; flex-direction: column; gap: 8px; }
+  .ck-input, .ck-select, .ck-textarea {
+    width: 100%; padding: 10px 13px;
+    border: 1.5px solid #e0e0e0; border-radius: 10px;
+    font-family: 'Inter', sans-serif; font-size: 14px; color: #202124;
+    background: #f8f9fa; outline: none;
+    transition: border-color 0.18s, box-shadow 0.18s;
+  }
+  .ck-textarea { resize: vertical; min-height: 64px; line-height: 1.5; }
+  .ck-select { appearance: none; cursor: pointer;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%235f6368' stroke-width='2'><polyline points='6 9 12 15 18 9'/></svg>");
+    background-repeat: no-repeat; background-position: right 12px center;
+  }
+  .ck-input:focus, .ck-select:focus, .ck-textarea:focus { border-color: var(--c1); box-shadow: 0 0 0 3px rgba(26,86,219,0.1); background: #fff; }
+  .ck-input::placeholder, .ck-textarea::placeholder { color: #9aa0a6; }
+  .field-label { font-size: 10.5px; font-weight: 600; color: #5f6368; letter-spacing: 0.03em; text-transform: uppercase; margin-bottom: -3px; }
+  .stripe-box {
+    border: 1.5px solid #e0e0e0; border-radius: 10px;
+    padding: 11px 13px; background: #f8f9fa;
+    transition: border-color 0.18s, box-shadow 0.18s;
+  }
+  .stripe-box.focused { border-color: var(--c1); box-shadow: 0 0 0 3px rgba(26,86,219,0.1); background: #fff; }
+  .ck-error { font-size: 12px; color: #c5221f; min-height: 16px; padding: 0 2px; }
+  .ck-pay-btn {
+    width: 100%; background: linear-gradient(135deg, var(--c1), var(--c2));
+    color: #fff; border: none; border-radius: 12px;
+    padding: 13px; font-size: 14px; font-weight: 600;
+    font-family: 'Inter', sans-serif; cursor: pointer;
+    transition: opacity 0.18s, transform 0.12s;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .ck-pay-btn:hover { opacity: 0.92; }
+  .ck-pay-btn:active { transform: scale(0.98); }
+  .ck-pay-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .ck-pay-btn .spinner {
+    width: 15px; height: 15px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff; border-radius: 50%;
+    animation: spin 0.7s linear infinite; display: none;
+  }
+  .ck-pay-btn.loading .spinner { display: block; }
+  .ck-pay-btn.loading .btn-label { opacity: 0.7; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .ck-divider { height: 1px; background: #e8eaed; margin: 10px 14px; }
+  .ck-footer {
+    text-align: center; padding: 10px 14px 14px;
+    font-size: 10px; color: #9aa0a6;
+    display: flex; align-items: center; justify-content: center; gap: 5px;
+  }
+  .ck-footer svg { width: 11px; height: 11px; opacity: 0.6; }
+
+  /* Maintenance urgency tiles */
+  .urg-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+  .urg-tile {
+    border: 1.5px solid #e0e0e0; border-radius: 10px; padding: 8px 4px;
+    text-align: center; cursor: pointer; transition: all 0.16s;
+    font-size: 11px; font-weight: 600; color: #5f6368; background: #f8f9fa;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .urg-tile.selected { border-color: var(--c1); background: var(--c1-tint); color: var(--c1); }
+  .urg-tile.selected.emergency { border-color: #c5221f; background: #fce8e6; color: #c5221f; }
+
+  /* ─── SUCCESS ─── */
+  .success-bub {
+    background: #e6f4ea; border: 1.5px solid #81c995;
+    border-radius: 18px; border-top-left-radius: 4px;
+    padding: 14px 16px; max-width: 85%;
+  }
+  .success-icon { font-size: 28px; margin-bottom: 8px; display: block; }
+  .success-title { font-size: 15px; font-weight: 700; color: #137333; margin-bottom: 5px; }
+  .success-msg { font-size: 13px; color: #1e5128; line-height: 1.6; }
+  .success-ref { margin-top: 8px; font-size: 11px; color: #34a853; font-weight: 600; }
+
+  /* ─── INPUT AREA ─── */
+  .inp-area {
+    padding: 10px 14px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+    border-top: 1px solid #e8eaed;
+    background: #fff; flex-shrink: 0;
+  }
+  .inp-row {
+    display: flex; align-items: center; gap: 8px;
+    background: #f1f3f4; border: 1.5px solid transparent;
+    border-radius: 26px; padding: 9px 10px 9px 16px;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .inp-row:focus-within {
+    border-color: var(--c1); background: #fff;
+    box-shadow: 0 0 0 3px rgba(26,86,219,0.08);
+  }
+  .inp-icon-btn {
+    background: none; border: none; cursor: pointer;
+    color: #9aa0a6; padding: 2px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    transition: color 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .inp-icon-btn:hover { color: #5f6368; }
+  .inp-icon-btn svg { width: 18px; height: 18px; }
+  .inp-row input {
+    flex: 1; background: none; border: none; outline: none;
+    color: #202124; font-family: 'Inter', sans-serif;
+    font-size: 15px; font-weight: 400; caret-color: var(--c1); min-width: 0;
+  }
+  .inp-row input::placeholder { color: #9aa0a6; }
+  .send-btn {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--c1), var(--c2));
+    border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: opacity 0.15s, transform 0.12s; flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .send-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .send-btn:not(:disabled):active { opacity: 0.8; transform: scale(0.94); }
+  .send-btn svg { width: 16px; height: 16px; }
+  .inp-footer {
+    text-align: center; margin-top: 6px; font-size: 10px;
+    color: #9aa0a6; letter-spacing: 0.01em;
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- HEADER -->
+  <div class="hdr">
+    <div class="hdr-av">
+      <!-- Replace src with the property's logo/headshot -->
+      <img
+        id="hdr-avatar-img"
+        src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=200&q=80"
+        alt="Agent"
+        onerror="this.style.display='none'; this.parentElement.innerHTML='<svg viewBox=\'0 0 28 28\' fill=\'none\'><circle cx=\'14\' cy=\'10\' r=\'5\' fill=\'rgba(255,255,255,0.5)\'/><path d=\'M6 26c0-5 3.6-9 8-9s8 4 8 9\' stroke=\'rgba(255,255,255,0.5)\' stroke-width=\'1.5\' stroke-linecap=\'round\'/></svg>';"
+      />
+    </div>
+    <div class="hdr-info">
+      <div class="hdr-name" id="hdr-company-name">Sunrise Property Management</div>
+      <div class="hdr-agent-row">
+        <span class="hdr-agent-label" id="hdr-agent-tag">LEASING</span>
+        <span class="agent-badge">AI Assistant</span>
+      </div>
+    </div>
+    <button class="hdr-close" aria-label="Close">✕</button>
+  </div>
+
+  <!-- SUBHEADER TRUST BAR -->
+  <div class="subhdr" id="trust-bar">
+    <!-- populated by JS from CONFIG.trustBadges -->
+  </div>
+
+  <!-- MESSAGES -->
+  <div class="msgs" id="msgs"></div>
+
+  <!-- INPUT AREA -->
+  <div class="inp-area">
+    <div class="inp-row">
+      <button class="inp-icon-btn" aria-label="Attachment">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+        </svg>
+      </button>
+      <button class="inp-icon-btn" aria-label="Emoji">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/>
+        </svg>
+      </button>
+      <input
+        type="text" id="inp" placeholder="Write a message…"
+        onkeydown="onKey(event)"
+        autocomplete="off" autocorrect="off" autocapitalize="sentences"
+      />
+      <button class="send-btn" id="send-btn" onclick="send()" aria-label="Send">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M5 12h14M13 6l6 6-6 6" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+    <div class="inp-footer" id="inp-footer-text">Sunrise Property Management · AI Leasing Assistant</div>
+  </div>
+
+</div>
+
+<script>
+  /* ═══════════════════════════════════════════════════════════
+     CONFIG — this is the ONLY block you should need to touch
+     to rebrand this widget for a new property management client.
+  ═══════════════════════════════════════════════════════════ */
+  const CONFIG = {
+    companyName:     'Sunrise Property Management',
+    agentTag:        'LEASING',                 // small label under the company name
+    footerText:      'Sunrise Property Management · AI Leasing Assistant',
+    avatarUrl:       'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=200&q=80',
+    primaryColor:    '#1A56DB',
+    secondaryColor:  '#0E9F6E',
+    currency:        '$',
+    applicationFee:  50,                          // fixed application fee amount
+    webhookUrl:      'https://sdaew2.app.n8n.cloud/webhook-test/LEASING TEST',
+    stripePublicKey: 'pk_live_XXXXXXXXXXXXXXXXXXXXXXXX',
+
+    trustBadges: [
+      '🏠 Verified Listings',
+      '🔧 24/7 Maintenance',
+      '💳 Secure Payments',
+      '📅 Same-Day Tours'
+    ],
+
+    starterOptions: [
+      "I need to report a maintenance issue",
+      "I have a question about my lease",
+      "I want to pay my rent",
+      "I'm interested in touring a unit",
+      "I need to reach my leasing office"
+    ],
+
+    // Rotated as fallback suggestion chips whenever the webhook doesn't send its own
+    followupSets: [
+      [
+        "What's included in rent?",
+        "What's the pet policy?",
+        "How do I renew my lease?",
+        "What's the guest policy?"
+      ],
+      [
+        "How do I schedule a tour?",
+        "What are the application requirements?",
+        "Is parking included?",
+        "When is rent due?"
+      ],
+      [
+        "How do I submit a maintenance request?",
+        "What's the late fee policy?",
+        "How do I give notice to move out?",
+        "I'm ready to apply 🏠"
+      ]
+    ],
+
+    maintenanceCategories: [
+      'Plumbing', 'Electrical', 'HVAC / Heating & Cooling', 'Appliance',
+      'Pest Control', 'Locks / Keys', 'Windows / Doors', 'Other'
+    ]
+  };
+
+  // Apply brand colors as CSS variables
+  document.documentElement.style.setProperty('--c1', CONFIG.primaryColor);
+  document.documentElement.style.setProperty('--c2', CONFIG.secondaryColor);
+
+  /* ═══════════════════════════════════
+     SESSION
+  ═══════════════════════════════════ */
+  const SESSION_ID = 'lease_' + Math.random().toString(36).slice(2, 11) + '_' + Date.now();
+  let isBusy = false;
+  let lastUserMessage = '';
+  let followupIndex = 0;
+
+  function getFollowupOptions() {
+    const opts = CONFIG.followupSets[followupIndex % CONFIG.followupSets.length];
+    followupIndex++;
+    return opts;
+  }
+
+  /* ═══════════════════════════════════
+     MARKDOWN PARSER
+  ═══════════════════════════════════ */
+  function parseMarkdown(raw) {
+    let h = raw;
+    h = h.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    h = h.replace(/^### (.+)$/gm,'<h3>$1</h3>');
+    h = h.replace(/^## (.+)$/gm,'<h3>$1</h3>');
+    h = h.replace(/^# (.+)$/gm,'<h3>$1</h3>');
+    h = h.replace(/^---+$/gm,'<hr>');
+    h = h.replace(/\*\*\*(.+?)\*\*\*/g,'<strong><em>$1</em></strong>');
+    h = h.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+    h = h.replace(/__(.+?)__/g,'<strong>$1</strong>');
+    h = h.replace(/\*(.+?)\*/g,'<em>$1</em>');
+    h = h.replace(/_(.+?)_/g,'<em>$1</em>');
+    h = h.replace(/`(.+?)`/g,'<code>$1</code>');
+    h = h.replace(/^&gt; (.+)$/gm,'<blockquote>$1</blockquote>');
+    h = h.replace(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+    h = h.replace(/(?<!["\(>])(https?:\/\/[^\s<"'\)\]]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>');
+    h = h.replace(/^[\-\*] (.+)$/gm,'<li>$1</li>');
+    h = h.replace(/(<li>.*<\/li>\n?)+/g,(b)=>'<ul>'+b+'</ul>');
+    h = h.replace(/^\d+\. (.+)$/gm,'<oli>$1</oli>');
+    h = h.replace(/(<oli>.*<\/oli>\n?)+/g,(b)=>'<ol>'+b.replace(/<\/?oli>/g,t=>t==='<oli>'?'<li>':'</li>')+'</ol>');
+    h = h.replace(/\n{2,}/g,'\n\n');
+    h = h.split('\n\n').map(l=>{
+      const t=l.trim();
+      if(!t) return '';
+      if(/^<(h[1-3]|ul|ol|blockquote|hr|li)/.test(t)) return t;
+      return '<p>'+t.replace(/\n/g,'<br>')+'</p>';
+    }).filter(Boolean).join('\n');
+    return h;
+  }
+
+  /* ═══════════════════════════════════
+     UTILITIES
+  ═══════════════════════════════════ */
+  function scrollB() {
+    const el = document.getElementById('msgs');
+    setTimeout(()=>{ el.scrollTop = el.scrollHeight; }, 40);
+  }
+  function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function getTime() {
+    return new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  }
+
+  function setBusy(state) {
+    isBusy = state;
+    document.getElementById('send-btn').disabled = state;
+    document.getElementById('inp').disabled = state;
+    document.querySelectorAll('.opt-pill').forEach(b => b.disabled = state);
+  }
+
+  function removeOptions(id) {
+    document.getElementById(id)?.remove();
+  }
+
+  /* ═══════════════════════════════════
+     AGENT ROW HTML
+  ═══════════════════════════════════ */
+  function agentRowHTML() {
+    return `
+      <div class="agent-row">
+        <div class="agent-row-av">
+          <img src="${CONFIG.avatarUrl}" alt="Agent"
+            onerror="this.style.display='none'"
+          />
+        </div>
+        <span class="agent-row-name">${escHtml(CONFIG.agentTag)}</span>
+        <span class="agent-row-badge">
+          <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 2a5 5 0 110 10A5 5 0 018 3zm-.75 2.5v3.25l2.5 1.5.75-1.25-2-1.2V5.5h-1.25z"/></svg>
+          AI ASSISTANT
+        </span>
+        <span class="agent-row-time">${getTime()}</span>
+      </div>`;
+  }
+
+  /* ═══════════════════════════════════
+     RENDER OPENING
+  ═══════════════════════════════════ */
+  function renderOpening() {
+    document.getElementById('hdr-company-name').textContent = CONFIG.companyName;
+    document.getElementById('hdr-agent-tag').textContent = CONFIG.agentTag;
+    document.getElementById('hdr-avatar-img').src = CONFIG.avatarUrl;
+    document.getElementById('inp-footer-text').textContent = CONFIG.footerText;
+
+    const tb = document.getElementById('trust-bar');
+    tb.innerHTML = CONFIG.trustBadges.map(b => `<div class="sub-item">${escHtml(b)}</div>`).join('');
+
+    const m = document.getElementById('msgs');
+
+    // Date pill
+    const dp = document.createElement('div');
+    dp.className = 'date-pill';
+    dp.textContent = new Date().toLocaleDateString([], {weekday:'long', month:'long', day:'numeric'});
+    m.appendChild(dp);
+
+    // Agent greeting group
+    const grp = document.createElement('div');
+    grp.className = 'msg-group';
+    grp.id = 'opening-group';
+    grp.innerHTML = `
+      ${agentRowHTML()}
+      <div class="msg">
+        <div class="bub b">
+          <p>Hi there 👋</p>
+          <p>I'm the ${escHtml(CONFIG.companyName)} Leasing Assistant. What can I help you with today?</p>
+        </div>
+      </div>
+    `;
+    m.appendChild(grp);
+
+    // Option pills
+    const optsDiv = document.createElement('div');
+    optsDiv.className = 'options-wrap';
+    optsDiv.id = 'starter-options';
+    CONFIG.starterOptions.forEach(label => {
+      const btn = document.createElement('button');
+      btn.className = 'opt-pill';
+      btn.textContent = label;
+      btn.onclick = () => { removeOptions('starter-options'); sendMessage(label); };
+      optsDiv.appendChild(btn);
+    });
+    m.appendChild(optsDiv);
+    scrollB();
+  }
+
+  /* ═══════════════════════════════════
+     APPEND USER MESSAGE
+  ═══════════════════════════════════ */
+  function appendUser(txt) {
+    const m = document.getElementById('msgs');
+    const grp = document.createElement('div');
+    grp.className = 'msg-group';
+    grp.innerHTML = `
+      <div style="display:flex;justify-content:flex-end;margin-bottom:4px;">
+        <span style="font-size:10px;color:#9aa0a6;margin-right:4px;">${getTime()}</span>
+      </div>
+      <div class="msg u">
+        <div class="u-av">👤</div>
+        <div class="bub u">${escHtml(txt)}</div>
+      </div>`;
+    m.appendChild(grp);
+    scrollB();
+  }
+
+  /* ═══════════════════════════════════
+     APPEND TYPING INDICATOR
+  ═══════════════════════════════════ */
+  function appendTyping() {
+    const m = document.getElementById('msgs');
+    const id = 'ty' + Date.now();
+    const grp = document.createElement('div');
+    grp.id = id; grp.className = 'msg-group';
+    grp.innerHTML = `
+      ${agentRowHTML()}
+      <div class="msg"><div class="tdots"><div class="d"></div><div class="d"></div><div class="d"></div></div></div>`;
+    m.appendChild(grp);
+    scrollB();
+    return id;
+  }
+
+  /* ═══════════════════════════════════
+     APPEND BOT MESSAGE + OPTIONS
+  ═══════════════════════════════════ */
+  function appendBot(rawContent, options) {
+    const m = document.getElementById('msgs');
+    const optId = 'opts_' + Date.now();
+
+    const grp = document.createElement('div');
+    grp.className = 'msg-group';
+    grp.innerHTML = `
+      ${agentRowHTML()}
+      <div class="msg">
+        <div class="bub b">${parseMarkdown(rawContent)}</div>
+      </div>`;
+    m.appendChild(grp);
+
+    // Option pills: use webhook-provided options or fallback
+    const pillOptions = (Array.isArray(options) && options.length > 0)
+      ? options
+      : getFollowupOptions();
+
+    const optsDiv = document.createElement('div');
+    optsDiv.className = 'options-wrap';
+    optsDiv.id = optId;
+    pillOptions.forEach(label => {
+      const btn = document.createElement('button');
+      btn.className = 'opt-pill';
+      btn.textContent = label;
+      btn.onclick = () => { removeOptions(optId); sendMessage(label); };
+      optsDiv.appendChild(btn);
+    });
+    m.appendChild(optsDiv);
+    scrollB();
+  }
+
+  /* ═══════════════════════════════════
+     ERROR
+  ═══════════════════════════════════ */
+  function appendError() {
+    const m = document.getElementById('msgs');
+    const grp = document.createElement('div');
+    grp.className = 'msg-group';
+    grp.innerHTML = `
+      ${agentRowHTML()}
+      <div class="msg">
+        <div class="bub err">
+          Sorry, there was a connection issue. Please try again.
+          <br><button class="retry-btn" onclick="retry()">↺ Retry</button>
+        </div>
+      </div>`;
+    m.appendChild(grp);
+    scrollB();
+  }
+
+  function retry() {
+    if (!lastUserMessage || isBusy) return;
+    document.querySelectorAll('.bub.err').forEach(e => e.closest('.msg-group')?.remove());
+    sendMessage(lastUserMessage);
+  }
+
+  /* ═══════════════════════════════════
+     PAYMENT CARD (rent / application fee)
+  ═══════════════════════════════════ */
+  let stripeInstance = null;
+  let cardElement    = null;
+  let selectedAmount = CONFIG.applicationFee;
+  let selectedPlan   = 'Application Fee';
+
+  function appendPaymentCard() {
+    document.getElementById('payment-card')?.remove();
+    const m = document.getElementById('msgs');
+
+    const grp = document.createElement('div');
+    grp.id = 'payment-card'; grp.className = 'msg-group';
+    grp.innerHTML = `
+      ${agentRowHTML()}
+      <div class="card-wrap">
+        <div class="card">
+          <div class="card-hdr">
+            <div class="card-hdr-title">💳 Make a Payment</div>
+            <div class="card-hdr-sub">Secure checkout · Powered by Stripe</div>
+          </div>
+          <div class="ck-plans">
+            <div class="ck-plan selected" id="plan-appfee" onclick="selectPlan('appfee')">
+              <div class="ck-plan-name">Application Fee</div>
+              <div class="ck-plan-price">${CONFIG.currency}${CONFIG.applicationFee}</div>
+              <div class="ck-plan-note">One-time, non-refundable</div>
+            </div>
+            <div class="ck-plan" id="plan-rent" onclick="selectPlan('rent')">
+              <div class="ck-plan-name">Pay Rent</div>
+              <div class="ck-plan-price">${CONFIG.currency}—</div>
+              <div class="ck-plan-note">Enter your amount below</div>
+            </div>
+          </div>
+          <div class="card-fields">
+            <input class="ck-input" type="text" id="ck-unit" placeholder="Unit / Apt Number" autocomplete="off"/>
+            <input class="ck-input" id="ck-rent-amount" type="number" min="1" step="0.01"
+                   placeholder="Rent amount (${CONFIG.currency})" style="display:none;"/>
+            <input class="ck-input" type="text"  id="ck-name"  placeholder="Full Name" autocomplete="name"/>
+            <input class="ck-input" type="email" id="ck-email" placeholder="Email Address" autocomplete="email"/>
+            <div id="stripe-card-element" class="stripe-box"></div>
+            <div id="ck-error" class="ck-error"></div>
+          </div>
+          <div class="ck-divider"></div>
+          <div style="padding:0 14px;">
+            <button class="ck-pay-btn" id="ck-pay-btn" onclick="handlePayment()">
+              <div class="spinner"></div>
+              <span class="btn-label">Pay ${CONFIG.currency}${CONFIG.applicationFee} Securely 🔒</span>
+            </button>
+          </div>
+          <div class="ck-footer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            256-bit SSL Encrypted
+          </div>
+        </div>
+      </div>`;
+    m.appendChild(grp);
+    scrollB();
+    initStripe();
+  }
+
+  function initStripe() {
+    stripeInstance = Stripe(CONFIG.stripePublicKey);
+    const elements = stripeInstance.elements({
+      fonts: [{ cssSrc: 'https://fonts.googleapis.com/css2?family=Inter:wght@400&display=swap' }]
+    });
+    cardElement = elements.create('card', {
+      style: {
+        base: {
+          fontFamily: "'Inter', sans-serif", fontSize: '14px', color: '#202124',
+          '::placeholder': { color: '#9aa0a6' }
+        },
+        invalid: { color: '#c5221f' }
+      }
+    });
+    cardElement.mount('#stripe-card-element');
+    cardElement.on('focus',  () => document.getElementById('stripe-card-element')?.classList.add('focused'));
+    cardElement.on('blur',   () => document.getElementById('stripe-card-element')?.classList.remove('focused'));
+    cardElement.on('change', (e) => { document.getElementById('ck-error').textContent = e.error ? e.error.message : ''; });
+  }
+
+  function selectPlan(plan) {
+    document.querySelectorAll('.ck-plan').forEach(p => p.classList.remove('selected'));
+    const rentInput = document.getElementById('ck-rent-amount');
+    const btn = document.getElementById('ck-pay-btn');
+    if (plan === 'appfee') {
+      selectedPlan = 'Application Fee'; selectedAmount = CONFIG.applicationFee;
+      document.getElementById('plan-appfee').classList.add('selected');
+      rentInput.style.display = 'none';
+      btn.querySelector('.btn-label').textContent = `Pay ${CONFIG.currency}${selectedAmount} Securely 🔒`;
+    } else {
+      selectedPlan = 'Rent Payment';
+      document.getElementById('plan-rent').classList.add('selected');
+      rentInput.style.display = 'block';
+      selectedAmount = parseFloat(rentInput.value) || 0;
+      btn.querySelector('.btn-label').textContent = selectedAmount > 0
+        ? `Pay ${CONFIG.currency}${selectedAmount.toFixed(2)} Securely 🔒`
+        : `Enter rent amount above`;
+      rentInput.oninput = () => {
+        selectedAmount = parseFloat(rentInput.value) || 0;
+        btn.querySelector('.btn-label').textContent = selectedAmount > 0
+          ? `Pay ${CONFIG.currency}${selectedAmount.toFixed(2)} Securely 🔒`
+          : `Enter rent amount above`;
+      };
+    }
+  }
+
+  async function handlePayment() {
+    const unit  = document.getElementById('ck-unit')?.value.trim();
+    const name  = document.getElementById('ck-name')?.value.trim();
+    const email = document.getElementById('ck-email')?.value.trim();
+    const errEl = document.getElementById('ck-error');
+    if (!unit) { errEl.textContent = 'Please enter your unit / apartment number.'; return; }
+    if (!name) { errEl.textContent = 'Please enter your full name.'; return; }
+    if (!email || !email.includes('@')) { errEl.textContent = 'Please enter a valid email address.'; return; }
+    if (!selectedAmount || selectedAmount <= 0) { errEl.textContent = 'Please enter a valid amount.'; return; }
+    errEl.textContent = '';
+    const btn = document.getElementById('ck-pay-btn');
+    btn.disabled = true; btn.classList.add('loading');
+    try {
+      const intentRes = await fetch(CONFIG.webhookUrl, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'create_payment_intent', amount: selectedAmount, plan: selectedPlan, unit, name, email, sessionId: SESSION_ID })
+      });
+      if (!intentRes.ok) throw new Error('Could not initiate payment. Please try again.');
+      const intentData = await intentRes.json();
+      if (!intentData.clientSecret) throw new Error('Payment setup failed. Please try again.');
+      const result = await stripeInstance.confirmCardPayment(intentData.clientSecret, {
+        payment_method: { card: cardElement, billing_details: { name, email } }
+      });
+      if (result.error) {
+        errEl.textContent = result.error.message;
+        btn.disabled = false; btn.classList.remove('loading'); return;
+      }
+      const paymentId = result.paymentIntent.id;
+      document.getElementById('payment-card')?.remove();
+      appendPaymentSuccess(name, email, selectedAmount, selectedPlan, paymentId);
+    } catch (err) {
+      errEl.textContent = err.message || 'Something went wrong. Please try again.';
+      btn.disabled = false; btn.classList.remove('loading');
+    }
+  }
+
+  function appendPaymentSuccess(name, email, amount, plan, paymentId) {
+    const m = document.getElementById('msgs');
+    const firstName = name.split(' ')[0];
+    const refShort  = paymentId ? paymentId.slice(-8).toUpperCase() : '--------';
+    const grp = document.createElement('div');
+    grp.className = 'msg-group';
+    grp.innerHTML = `
+      ${agentRowHTML()}
+      <div class="msg">
+        <div class="success-bub">
+          <span class="success-icon">✅</span>
+          <div class="success-title">Payment Received, ${escHtml(firstName)}!</div>
+          <div class="success-msg">
+            Your ${escHtml(plan)} of <strong>${CONFIG.currency}${amount.toFixed ? amount.toFixed(2) : amount}</strong> was successful.
+            A receipt has been sent to <strong>${escHtml(email)}</strong>.
+          </div>
+          <div class="success-ref">Ref: #${refShort}</div>
+        </div>
+      </div>`;
+    m.appendChild(grp);
+    scrollB();
+  }
+
+  /* ═══════════════════════════════════
+     MAINTENANCE REQUEST CARD
+  ═══════════════════════════════════ */
+  let selectedUrgency = 'Routine';
+
+  function appendMaintenanceCard() {
+    document.getElementById('maintenance-card')?.remove();
+    const m = document.getElementById('msgs');
+    selectedUrgency = 'Routine';
+
+    const catOptions = CONFIG.maintenanceCategories
+      .map(c => `<option value="${escHtml(c)}">${escHtml(c)}</option>`).join('');
+
+    const grp = document.createElement('div');
+    grp.id = 'maintenance-card'; grp.className = 'msg-group';
+    grp.innerHTML = `
+      ${agentRowHTML()}
+      <div class="card-wrap">
+        <div class="card">
+          <div class="card-hdr">
+            <div class="card-hdr-title">🔧 Maintenance Request</div>
+            <div class="card-hdr-sub">We'll route this to your property team</div>
+          </div>
+          <div class="card-fields" style="padding-top:14px;">
+            <input class="ck-input" type="text" id="mr-name" placeholder="Full Name" autocomplete="name"/>
+            <input class="ck-input" type="text" id="mr-unit" placeholder="Unit / Apt Number" autocomplete="off"/>
+            <select class="ck-select" id="mr-category">
+              <option value="" disabled selected>Issue Category</option>
+              ${catOptions}
+            </select>
+            <div class="field-label">Urgency</div>
+            <div class="urg-row">
+              <div class="urg-tile selected" id="urg-routine" onclick="selectUrgency('Routine')">Routine</div>
+              <div class="urg-tile" id="urg-urgent" onclick="selectUrgency('Urgent')">Urgent</div>
+              <div class="urg-tile" id="urg-emergency" onclick="selectUrgency('Emergency')">Emergency</div>
+            </div>
+            <textarea class="ck-textarea" id="mr-desc" placeholder="Briefly describe the issue…"></textarea>
+            <div id="mr-error" class="ck-error"></div>
+          </div>
+          <div class="ck-divider"></div>
+          <div style="padding:0 14px 14px;">
+            <button class="ck-pay-btn" id="mr-submit-btn" onclick="handleMaintenanceSubmit()">
+              <div class="spinner"></div>
+              <span class="btn-label">Submit Request</span>
+            </button>
+          </div>
+        </div>
+      </div>`;
+    m.appendChild(grp);
+    scrollB();
+  }
+
+  function selectUrgency(level) {
+    selectedUrgency = level;
+    document.querySelectorAll('.urg-tile').forEach(t => t.classList.remove('selected', 'emergency'));
+    if (level === 'Routine')   document.getElementById('urg-routine').classList.add('selected');
+    if (level === 'Urgent')    document.getElementById('urg-urgent').classList.add('selected');
+    if (level === 'Emergency') document.getElementById('urg-emergency').classList.add('selected', 'emergency');
+  }
+
+  async function handleMaintenanceSubmit() {
+    const name  = document.getElementById('mr-name')?.value.trim();
+    const unit  = document.getElementById('mr-unit')?.value.trim();
+    const category = document.getElementById('mr-category')?.value;
+    const desc  = document.getElementById('mr-desc')?.value.trim();
+    const errEl = document.getElementById('mr-error');
+
+    if (!name) { errEl.textContent = 'Please enter your full name.'; return; }
+    if (!unit) { errEl.textContent = 'Please enter your unit / apartment number.'; return; }
+    if (!category) { errEl.textContent = 'Please select an issue category.'; return; }
+    if (!desc) { errEl.textContent = 'Please briefly describe the issue.'; return; }
+    errEl.textContent = '';
+
+    const btn = document.getElementById('mr-submit-btn');
+    btn.disabled = true; btn.classList.add('loading');
+
+    try {
+      const res = await fetch(CONFIG.webhookUrl, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'submit_maintenance_request', name, unit, category,
+          urgency: selectedUrgency, description: desc, sessionId: SESSION_ID
+        })
+      });
+      if (!res.ok) throw new Error('Could not submit your request. Please try again.');
+      const data = await res.json();
+      document.getElementById('maintenance-card')?.remove();
+      appendMaintenanceSuccess(name, category, selectedUrgency, data.ticketId);
+    } catch (err) {
+      errEl.textContent = err.message || 'Something went wrong. Please try again.';
+      btn.disabled = false; btn.classList.remove('loading');
+    }
+  }
+
+  function appendMaintenanceSuccess(name, category, urgency, ticketId) {
+    const m = document.getElementById('msgs');
+    const firstName = name.split(' ')[0];
+    const ref = ticketId ? String(ticketId).slice(-8).toUpperCase() : Math.random().toString(36).slice(2, 8).toUpperCase();
+    const grp = document.createElement('div');
+    grp.className = 'msg-group';
+    grp.innerHTML = `
+      ${agentRowHTML()}
+      <div class="msg">
+        <div class="success-bub">
+          <span class="success-icon">🛠️</span>
+          <div class="success-title">Request Submitted, ${escHtml(firstName)}!</div>
+          <div class="success-msg">
+            Your <strong>${escHtml(category)}</strong> request (${escHtml(urgency)}) has been sent to the maintenance team.
+            ${urgency === 'Emergency' ? "For safety-related emergencies, please also call your property's emergency line directly." : "You'll receive updates by email."}
+          </div>
+          <div class="success-ref">Ticket #${ref}</div>
+        </div>
+      </div>`;
+    m.appendChild(grp);
+    scrollB();
+  }
+
+  /* ═══════════════════════════════════
+     SEND LOGIC
+  ═══════════════════════════════════ */
+  function onKey(e) { if (e.key === 'Enter' && !isBusy) send(); }
+
+  function send() {
+    const inp = document.getElementById('inp');
+    const txt = inp.value.trim();
+    if (!txt || isBusy) return;
+    inp.value = ''; inp.focus();
+    sendMessage(txt);
+  }
+
+  async function sendMessage(txt) {
+    if (isBusy) return;
+    lastUserMessage = txt;
+    setBusy(true);
+    appendUser(txt);
+    const tid = appendTyping();
+    scrollB();
+
+    try {
+      const res = await fetch(CONFIG.webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: txt, source: 'leasing_chatbot', sessionId: SESSION_ID, action: 'chat' })
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      document.getElementById(tid)?.remove();
+
+      const reply =
+        data.message || data.reply || data.output || data.text ||
+        "Thanks for reaching out — I've got your message.";
+
+      const cleanReply = reply
+        .replace(/\[show_payment\]/gi, '')
+        .replace(/\[show_maintenance\]/gi, '')
+        .trim();
+
+      // Pass webhook options if provided, else undefined (fallback kicks in)
+      appendBot(cleanReply, data.buttons);
+
+      const wantsPayment = data.action === 'show_payment' || /\[show_payment\]/i.test(reply);
+      const wantsMaintenance = data.action === 'show_maintenance' || /\[show_maintenance\]/i.test(reply);
+
+      if (wantsPayment) setTimeout(() => appendPaymentCard(), 700);
+      if (wantsMaintenance) setTimeout(() => appendMaintenanceCard(), 700);
+
+    } catch (err) {
+      document.getElementById(tid)?.remove();
+      appendError();
+    } finally {
+      setBusy(false);
+      document.getElementById('inp').focus();
+    }
+  }
+
+  /* ═══════════════════════════════════
+     INIT
+  ═══════════════════════════════════ */
+  window.addEventListener('DOMContentLoaded', () => {
+    renderOpening();
+    if (window.innerWidth >= 600) document.getElementById('inp').focus();
+  });
+  window.addEventListener('resize', scrollB);
+  document.body.addEventListener('touchmove', (e) => {
+    if (!e.target.closest('.msgs')) e.preventDefault();
+  }, { passive: false });
+</script>
+</body>
+</html>
