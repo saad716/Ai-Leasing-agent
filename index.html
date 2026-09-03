@@ -33,6 +33,7 @@
     display: flex; flex-direction: column;
     overflow: hidden;
     background: var(--surface);
+    position: relative;
   }
 
   @media (min-width: 600px) {
@@ -355,7 +356,7 @@
   .urg-tile.selected { border-color: var(--accent); background: var(--accent-tint); color: var(--c2); }
   .urg-tile.selected.emergency { border-color: #C5473C; background: #FBE8E6; color: #A6362C; }
 
-  /* ─── PROPERTY RESULTS (Zillow-style cards) ─── */
+  /* ─── PROPERTY RESULTS (card anatomy: photo+badge, address, price, meta row, two actions) ─── */
   .prop-scroll {
     display: flex; gap: 10px; overflow-x: auto;
     padding: 2px 2px 8px; margin-top: 2px;
@@ -374,26 +375,68 @@
   .prop-img-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .prop-badge {
     position: absolute; top: 8px; left: 8px;
-    background: rgba(28,27,25,0.82); color: #fff;
-    font-size: 9.5px; font-weight: 700; letter-spacing: 0.04em;
-    padding: 3px 8px; border-radius: 20px; text-transform: uppercase;
+    background: var(--accent); color: var(--ink);
+    font-size: 10px; font-weight: 700; letter-spacing: 0.02em;
+    padding: 4px 9px; border-radius: 20px;
+    font-family: 'Inter', sans-serif;
   }
   .prop-body { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 4px; }
-  .prop-price { font-size: 16.5px; font-weight: 700; color: var(--ink); line-height: 1.15; }
+  .prop-title { font-size: 13.5px; font-weight: 700; color: var(--ink); line-height: 1.3; }
+  .prop-price { font-size: 18px; font-weight: 700; color: var(--accent); line-height: 1.2; }
   .prop-price span { font-size: 11px; font-weight: 500; color: var(--muted); }
-  .prop-title { font-size: 12.5px; font-weight: 600; color: var(--ink); line-height: 1.3; }
-  .prop-address { font-size: 11px; color: var(--muted); line-height: 1.35; margin-bottom: 2px; }
-  .prop-meta { display: flex; align-items: center; gap: 9px; font-size: 11px; color: var(--ink); font-weight: 500; }
-  .prop-meta span { display: flex; align-items: center; gap: 3px; }
-  .prop-meta svg { width: 12px; height: 12px; opacity: 0.55; }
-  .prop-cta {
-    margin-top: 6px; width: 100%; background: #fff;
-    border: 1.5px solid var(--accent); color: var(--c2);
-    font-size: 12px; font-weight: 600; padding: 7px 10px;
+  .prop-meta {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 10.5px; color: var(--muted); font-weight: 500;
+    font-family: 'SFMono-Regular', 'Menlo', 'Consolas', monospace;
+    letter-spacing: 0.01em; margin-top: 1px;
+  }
+  .prop-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 7px; }
+  .prop-btn {
+    width: 100%; font-size: 12.5px; font-weight: 600; padding: 8px 10px;
     border-radius: 9px; cursor: pointer; transition: all 0.16s;
     font-family: 'Inter', sans-serif;
   }
-  .prop-cta:hover { background: var(--accent); color: #fff; }
+  .prop-btn.view {
+    background: #fff; border: 1.5px solid #E4DECF; color: var(--ink);
+  }
+  .prop-btn.view:hover { border-color: var(--accent); background: var(--accent-tint); }
+  .prop-btn.book {
+    background: var(--accent); border: 1.5px solid var(--accent); color: var(--ink);
+  }
+  .prop-btn.book:hover { opacity: 0.88; }
+
+  /* ─── PROPERTY DETAIL POPUP (View button — details only, no other actions) ─── */
+  .prop-modal-overlay {
+    position: absolute; inset: 0;
+    background: rgba(28,27,25,0.5);
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px; z-index: 40;
+    animation: fadeUp 0.18s ease;
+  }
+  .prop-modal {
+    background: #fff; border-radius: 16px;
+    width: 100%; max-width: 300px;
+    overflow: hidden;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.28);
+  }
+  .prop-modal-img { width: 100%; height: 140px; background: #E4DECF; object-fit: cover; display: block; }
+  .prop-modal-body { padding: 16px 18px 18px; }
+  .prop-modal-title { font-size: 15px; font-weight: 700; color: var(--ink); margin-bottom: 2px; }
+  .prop-modal-address { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+  .prop-modal-price { font-size: 19px; font-weight: 700; color: var(--accent); margin-bottom: 8px; }
+  .prop-modal-price span { font-size: 11px; font-weight: 500; color: var(--muted); }
+  .prop-modal-meta {
+    display: flex; gap: 12px; font-size: 12px; color: var(--ink);
+    font-weight: 500; padding: 10px 0; border-top: 1px solid #EFEBE0;
+  }
+  .prop-modal-close {
+    position: absolute; top: 10px; right: 10px;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: rgba(28,27,25,0.55); border: none; color: #fff;
+    font-size: 13px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .prop-modal-img-wrap { position: relative; }
 
   /* ─── SUCCESS ─── */
   .success-bub {
@@ -401,7 +444,6 @@
     border-radius: 18px; border-top-left-radius: 4px;
     padding: 14px 16px; max-width: 85%;
   }
-  .success-icon { font-size: 28px; margin-bottom: 8px; display: block; }
   .success-title { font-size: 15px; font-weight: 700; color: #2E6B2A; margin-bottom: 5px; }
   .success-msg { font-size: 13px; color: #2C4A28; line-height: 1.6; }
   .success-ref { margin-top: 8px; font-size: 11px; color: #3E8A38; font-weight: 600; }
@@ -462,7 +504,7 @@
 </style>
 </head>
 <body>
-<div class="shell">
+<div class="shell" id="shell">
 
   <!-- HEADER -->
   <div class="hdr">
@@ -519,7 +561,7 @@
       </button>
     </div>
     <div class="inp-footer" id="inp-footer-text">Sunrise Property Management · AI Leasing Assistant</div>
-    <div class="inp-footer-powered">⚡ Powered by <a href="https://botyama.com" target="_blank" rel="noopener">botyama.com</a></div>
+    <div class="inp-footer-powered">Powered by <a href="https://botyama.com" target="_blank" rel="noopener">botyama.com</a></div>
   </div>
 
 </div>
@@ -543,10 +585,10 @@
     webhookUrl:      'https://sdaew2.app.n8n.cloud/webhook/BOT TEST',
 
     trustBadges: [
-      '🏠 Verified Listings',
-      '🔧 24/7 Maintenance',
-      '🔒 Secure Payments',
-      '📅 Same-Day Tours'
+      'Verified Listings',
+      '24/7 Maintenance',
+      'Secure Payments',
+      'Same-Day Tours'
     ],
 
     starterOptions: [
@@ -682,7 +724,7 @@
       ${agentRowHTML()}
       <div class="msg">
         <div class="bub b">
-          <p>Hi there 👋</p>
+          <p>Hi there.</p>
           <p>I'm the ${escHtml(CONFIG.companyName)} AI Leasing Assistant. What can I help you with today?</p>
         </div>
       </div>
@@ -716,7 +758,7 @@
         <span style="font-size:10px;color:var(--muted);margin-right:4px;">${getTime()}</span>
       </div>
       <div class="msg u">
-        <div class="u-av">👤</div>
+        <div class="u-av">You</div>
         <div class="bub u">${escHtml(txt)}</div>
       </div>`;
     m.appendChild(grp);
@@ -786,7 +828,7 @@
       <div class="msg">
         <div class="bub err">
           Sorry, there was a connection issue. Please try again.
-          <br><button class="retry-btn" onclick="retry()">↺ Retry</button>
+          <br><button class="retry-btn" onclick="retry()">Retry</button>
         </div>
       </div>`;
     m.appendChild(grp);
@@ -800,20 +842,25 @@
   }
 
   /* ═══════════════════════════════════
-     PROPERTY RESULTS — Zillow-style cards
+     PROPERTY RESULTS — card anatomy:
+       photo + availability badge on image
+       address (bold, unit included)
+       price (largest, accent-colored)
+       meta row (mono bed/bath/sqft)
+       two actions: View (secondary) / Book tour (primary)
+
      Triggered when the webhook reply includes:
        data.properties: [{
-         image, title, address, price, priceSuffix,
+         image, address, price, priceSuffix,
          beds, baths, sqft, badge
        }, ...]
      and/or data.action === 'show_properties' /
      the reply contains [show_properties].
+
+     "View" opens a small popup with a few details
+     only — no chat message is sent, no other actions.
   ═══════════════════════════════════ */
-  function bedBathSqftIcon(type) {
-    if (type === 'bed') return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 18v-6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v6"/><path d="M2 18h20"/><path d="M4 12V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v4"/></svg>';
-    if (type === 'bath') return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16v3a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5v-3z"/><path d="M6 12V6a2 2 0 0 1 3.5-1.3"/><line x1="2" y1="12" x2="22" y2="12"/></svg>';
-    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>';
-  }
+  let propertyRegistry = {};
 
   function appendPropertyCards(properties) {
     if (!Array.isArray(properties) || properties.length === 0) return;
@@ -821,13 +868,20 @@
     const grp = document.createElement('div');
     grp.className = 'msg-group';
 
-    const cardsHtml = properties.map(p => {
+    const cardsHtml = properties.map((p, i) => {
+      const key = 'p_' + Date.now() + '_' + i;
+      propertyRegistry[key] = p;
+
       const img = p.image
-        ? `<img src="${escHtml(p.image)}" alt="${escHtml(p.title || 'Property photo')}" onerror="this.closest('.prop-img-wrap').innerHTML='<div style=\\'display:flex;align-items:center;justify-content:center;height:100%;color:#A79F8E;font-size:11px;\\'>No photo available</div>'"/>`
+        ? `<img src="${escHtml(p.image)}" alt="${escHtml(p.address || 'Property photo')}" onerror="this.closest('.prop-img-wrap').innerHTML='<div style=\\'display:flex;align-items:center;justify-content:center;height:100%;color:#A79F8E;font-size:11px;\\'>No photo available</div>'"/>`
         : `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#A79F8E;font-size:11px;">No photo available</div>`;
 
       const price = p.price ? `${CONFIG.currency}${p.price}` : 'Contact for price';
       const priceSuffix = p.priceSuffix || (p.price ? '/mo' : '');
+      const metaParts = [];
+      if (p.beds != null) metaParts.push(`${escHtml(p.beds)} bed`);
+      if (p.baths != null) metaParts.push(`${escHtml(p.baths)} bath`);
+      if (p.sqft != null) metaParts.push(`${escHtml(p.sqft)} sqft`);
 
       return `
         <div class="prop-card">
@@ -836,15 +890,13 @@
             ${p.badge ? `<div class="prop-badge">${escHtml(p.badge)}</div>` : ''}
           </div>
           <div class="prop-body">
+            ${p.address ? `<div class="prop-title">${escHtml(p.address)}</div>` : ''}
             <div class="prop-price">${escHtml(price)}${priceSuffix ? `<span> ${escHtml(priceSuffix)}</span>` : ''}</div>
-            ${p.title ? `<div class="prop-title">${escHtml(p.title)}</div>` : ''}
-            ${p.address ? `<div class="prop-address">${escHtml(p.address)}</div>` : ''}
-            <div class="prop-meta">
-              ${p.beds != null ? `<span>${bedBathSqftIcon('bed')} ${escHtml(p.beds)} bd</span>` : ''}
-              ${p.baths != null ? `<span>${bedBathSqftIcon('bath')} ${escHtml(p.baths)} ba</span>` : ''}
-              ${p.sqft != null ? `<span>${bedBathSqftIcon('sqft')} ${escHtml(p.sqft)} sqft</span>` : ''}
+            ${metaParts.length ? `<div class="prop-meta">${metaParts.join(' &middot; ')}</div>` : ''}
+            <div class="prop-actions">
+              <button class="prop-btn view" onclick="showPropertyDetails('${key}')">View</button>
+              <button class="prop-btn book" onclick="sendMessage(${JSON.stringify('Book a tour for ' + (p.address || 'this property'))})">Book tour</button>
             </div>
-            <button class="prop-cta" onclick="sendMessage(${JSON.stringify('Tell me more about ' + (p.title || p.address || 'this property'))})">View details</button>
           </div>
         </div>`;
     }).join('');
@@ -852,6 +904,50 @@
     grp.innerHTML = `${agentRowHTML()}<div class="prop-scroll">${cardsHtml}</div>`;
     m.appendChild(grp);
     scrollB();
+  }
+
+  /* View button — pure detail popup, no other actions, nothing sent to chat */
+  function showPropertyDetails(key) {
+    const p = propertyRegistry[key];
+    if (!p) return;
+    document.getElementById('prop-modal-overlay')?.remove();
+
+    const shell = document.getElementById('shell');
+    const overlay = document.createElement('div');
+    overlay.id = 'prop-modal-overlay';
+    overlay.className = 'prop-modal-overlay';
+    overlay.onclick = (e) => { if (e.target === overlay) closePropertyDetails(); };
+
+    const price = p.price ? `${CONFIG.currency}${p.price}` : 'Contact for price';
+    const priceSuffix = p.priceSuffix || (p.price ? '/mo' : '');
+    const img = p.image
+      ? `<img class="prop-modal-img" src="${escHtml(p.image)}" alt="${escHtml(p.address || 'Property photo')}" onerror="this.style.display='none'"/>`
+      : `<div class="prop-modal-img" style="display:flex;align-items:center;justify-content:center;color:#A79F8E;font-size:12px;">No photo available</div>`;
+
+    const metaParts = [];
+    if (p.beds != null) metaParts.push(`${escHtml(p.beds)} bed`);
+    if (p.baths != null) metaParts.push(`${escHtml(p.baths)} bath`);
+    if (p.sqft != null) metaParts.push(`${escHtml(p.sqft)} sqft`);
+
+    overlay.innerHTML = `
+      <div class="prop-modal">
+        <div class="prop-modal-img-wrap">
+          ${img}
+          <button class="prop-modal-close" onclick="closePropertyDetails()" aria-label="Close">✕</button>
+        </div>
+        <div class="prop-modal-body">
+          ${p.address ? `<div class="prop-modal-title">${escHtml(p.address)}</div>` : ''}
+          ${p.badge ? `<div class="prop-modal-address">${escHtml(p.badge)}</div>` : ''}
+          <div class="prop-modal-price">${escHtml(price)}${priceSuffix ? `<span> ${escHtml(priceSuffix)}</span>` : ''}</div>
+          ${metaParts.length ? `<div class="prop-modal-meta">${metaParts.map(x=>`<span>${x}</span>`).join('')}</div>` : ''}
+        </div>
+      </div>`;
+
+    shell.appendChild(overlay);
+  }
+
+  function closePropertyDetails() {
+    document.getElementById('prop-modal-overlay')?.remove();
   }
 
   /* ═══════════════════════════════════
@@ -875,7 +971,7 @@
       <div class="card-wrap">
         <div class="card">
           <div class="card-hdr">
-            <div class="card-hdr-title">💳 Request a Payment Link</div>
+            <div class="card-hdr-title">Request a Payment Link</div>
             <div class="card-hdr-sub">We'll email you a secure link to pay</div>
           </div>
           <div class="ck-plans">
@@ -902,7 +998,7 @@
           <div style="padding:0 14px;">
             <button class="ck-pay-btn" id="ck-pay-btn" onclick="handlePayment()">
               <div class="spinner"></div>
-              <span class="btn-label">Send Payment Link 🔒</span>
+              <span class="btn-label">Send Payment Link</span>
             </button>
           </div>
           <div class="ck-footer">
@@ -923,13 +1019,13 @@
       selectedPlan = 'Application Fee'; selectedAmount = CONFIG.applicationFee;
       document.getElementById('plan-appfee').classList.add('selected');
       rentInput.style.display = 'none';
-      btn.querySelector('.btn-label').textContent = `Send Payment Link 🔒`;
+      btn.querySelector('.btn-label').textContent = `Send Payment Link`;
     } else {
       selectedPlan = 'Rent Payment';
       document.getElementById('plan-rent').classList.add('selected');
       rentInput.style.display = 'block';
       selectedAmount = parseFloat(rentInput.value) || 0;
-      btn.querySelector('.btn-label').textContent = `Send Payment Link 🔒`;
+      btn.querySelector('.btn-label').textContent = `Send Payment Link`;
       rentInput.oninput = () => {
         selectedAmount = parseFloat(rentInput.value) || 0;
       };
@@ -979,8 +1075,7 @@
       ${agentRowHTML()}
       <div class="msg">
         <div class="success-bub">
-          <span class="success-icon">✅</span>
-          <div class="success-title">Request Received, ${escHtml(firstName)}!</div>
+          <div class="success-title">Request Received, ${escHtml(firstName)}</div>
           <div class="success-msg">
             We're preparing a secure payment link for your ${escHtml(plan)}${amountTxt ? ` of <strong>${amountTxt}</strong>` : ''}.
             It will be sent to <strong>${escHtml(email)}</strong> shortly.
@@ -1012,7 +1107,7 @@
       <div class="card-wrap">
         <div class="card">
           <div class="card-hdr">
-            <div class="card-hdr-title">🔧 Maintenance Request</div>
+            <div class="card-hdr-title">Maintenance Request</div>
             <div class="card-hdr-sub">We'll route this to your property team</div>
           </div>
           <div class="card-fields" style="padding-top:14px;">
@@ -1096,8 +1191,7 @@
       ${agentRowHTML()}
       <div class="msg">
         <div class="success-bub">
-          <span class="success-icon">🛠️</span>
-          <div class="success-title">Request Submitted, ${escHtml(firstName)}!</div>
+          <div class="success-title">Request Submitted, ${escHtml(firstName)}</div>
           <div class="success-msg">
             Your <strong>${escHtml(category)}</strong> request (${escHtml(urgency)}) has been sent to the maintenance team.
             ${urgency === 'Emergency' ? "For safety-related emergencies, please also call your property's emergency line directly." : "You'll receive updates by email."}
