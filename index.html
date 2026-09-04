@@ -922,11 +922,10 @@
       }
 
       const priceRaw = fields['price'] || fields['rent'] || '';
-      const priceNum = priceRaw.replace(/[^0-9.]/g, '');
-      const avail = fields['availability date'] || fields['available'] || fields['move-in date'] || '';
-     const imageRaw = fields['image'] || '';
-const imageMatch = imageRaw.match(/\[IMAGE_START\](.*?)\[IMAGE_END\]/);
-const image = imageMatch ? imageMatch[1].trim() : (imageRaw || null);
+const priceNum = priceRaw.replace(/[^0-9.]/g, '');
+const avail = fields['availability date'] || fields['available'] || fields['move-in date'] || '';
+const imageMatch = block.match(/\[IMAGE_START\](.*?)\[IMAGE_END\]/);
+const image = imageMatch ? imageMatch[1].trim() : null;
 
       // Always push the property, even if a field or two couldn't be parsed —
       // every listed item must still get a card, just with what we have.
