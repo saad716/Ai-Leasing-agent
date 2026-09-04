@@ -924,19 +924,23 @@
       const priceRaw = fields['price'] || fields['rent'] || '';
       const priceNum = priceRaw.replace(/[^0-9.]/g, '');
       const avail = fields['availability date'] || fields['available'] || fields['move-in date'] || '';
+     const imageRaw = fields['image'] || '';
+const imageMatch = imageRaw.match(/\[IMAGE_START\](.*?)\[IMAGE_END\]/);
+const image = imageMatch ? imageMatch[1].trim() : (imageRaw || null);
 
       // Always push the property, even if a field or two couldn't be parsed —
       // every listed item must still get a card, just with what we have.
       properties.push({
-        address:  titles[i].title,
-        price:    priceNum || priceRaw || null,
-        priceSuffix: priceNum ? '/mo' : '',
-        beds:     fields['bedrooms'] || fields['beds'] || null,
-        baths:    fields['bathrooms'] || fields['baths'] || null,
-        sqft:     fields['sqft'] || fields['square feet'] || null,
-        badge:    avail ? ('Available ' + avail) : '',
-        pets:     fields['pet policy'] || fields['pets'] || ''
-      });
+  address:  titles[i].title,
+  price:    priceNum || priceRaw || null,
+  priceSuffix: priceNum ? '/mo' : '',
+  beds:     fields['bedrooms'] || fields['beds'] || null,
+  baths:    fields['bathrooms'] || fields['baths'] || null,
+  sqft:     fields['sqft'] || fields['square feet'] || null,
+  badge:    avail ? ('Available ' + avail) : '',
+  pets:     fields['pet policy'] || fields['pets'] || '',
+  image:    image
+});
     }
 
     return { intro, properties };
