@@ -892,55 +892,47 @@
     const properties = [];
 
     for (let i = 0; i < titles.length; i++) {
-      const blockStart = titles[i].end;
-      const blockEnd = i + 1 < titles.length ? titles[i + 1].start : raw.length;
-      // Only look at the first paragraph after the title, so trailing prose
-      // after the last item (e.g. "Let me know if you'd like a tour!")
-      // never bleeds into that property's fields.
-      // Only look at the lines that actually belong to this item: keep
-      // consuming lines while they still contain "**" (bold field markers or
-      // wrapped continuations); stop at the first plain-text line (e.g. a
-      // trailing "Let me know if you'd like a tour!" after the last item).
-      const rawBlock = raw.slice(blockStart, blockEnd).split(/\n\s*\n/)[0];
-      const keptLines = [];
-      for (const line of rawBlock.split('\n')) {
-        if (line.trim() === '' || line.includes('**')) {
-          keptLines.push(line);
-        } else {
-          break;
-        }
-      }
-      const block = keptLines.join('\n');
+  const blockStart = titles[i].end;
+  const blockEnd = i + 1 < titles.length ? titles[i + 1].start : raw.length;
+  const rawBlock = raw.slice(blockStart, blockEnd).split(/\n\s*\n/)[0];
 
-      const fields = {};
-      let fm;
-      fieldRe.lastIndex = 0;
-      while ((fm = fieldRe.exec(block)) !== null) {
-        const label = fm[1].trim().toLowerCase();
-        const value = fm[2].replace(/\s+/g, ' ').trim().replace(/^-+\s*/, '').replace(/[\s-]+$/, '');
-        if (value) fields[label] = value;
-      }
-
-      const priceRaw = fields['price'] || fields['rent'] || '';
-const priceNum = priceRaw.replace(/[^0-9.]/g, '');
-const avail = fields['availability date'] || fields['available'] || fields['move-in date'] || '';
-const imageMatch = block.match(/\[IMAGE_START\](.*?)\[IMAGE_END\]/);
-const image = imageMatch ? imageMatch[1].trim() : null;
-
-      // Always push the property, even if a field or two couldn't be parsed —
-      // every listed item must still get a card, just with what we have.
-      properties.push({
-  address:  titles[i].title,
-  price:    priceNum || priceRaw || null,
-  priceSuffix: priceNum ? '/mo' : '',
-  beds:     fields['bedrooms'] || fields['beds'] || null,
-  baths:    fields['bathrooms'] || fields['baths'] || null,
-  sqft:     fields['sqft'] || fields['square feet'] || null,
-  badge:    avail ? ('Available ' + avail) : '',
-  pets:     fields['pet policy'] || fields['pets'] || '',
-  image:    image
-});
+  const keptLines = [];
+  for (const line of rawBlock.split('\n')) {
+    if (line.trim() === '' || line.includes('**')) {
+      keptLines.push(line);
+    } else {
+      break;
     }
+  }
+  const block = keptLines.join('\n');
+
+  const fields = {};
+  let fm;
+  fieldRe.lastIndex = 0;
+  while ((fm = fieldRe.exec(block)) !== null) {
+    const label = fm[1].trim().toLowerCase();
+    const value = fm[2].replace(/\s+/g, ' ').trim().replace(/^-+\s*/, '').replace(/[\s-]+$/, '');
+    if (value) fields[label] = value;
+  }
+
+  const priceRaw = fields['price'] || fields['rent'] || fields['monthly rent'] || '';   // ← fix 1
+  const priceNum = priceRaw.replace(/[^0-9.]/g, '');
+  const avail = fields['availability date'] || fields['available'] || fields['move-in date'] || '';
+  const imageMatch = rawBlock.match(/\[IMAGE_START\](.*?)\[IMAGE_END\]/);               // ← fix 2 (rawBlock, not block)
+  const image = imageMatch ? imageMatch[1].trim() : null;
+
+  properties.push({
+    address:  titles[i].title,
+    price:    priceNum || priceRaw || null,
+    priceSuffix: priceNum ? '/mo' : '',
+    beds:     fields['bedrooms'] || fields['beds'] || null,
+    baths:    fields['bathrooms'] || fields['baths'] || null,
+    sqft:     fields['sqft'] || fields['square feet'] || null,
+    badge:    avail ? ('Available ' + avail) : '',
+    pets:     fields['pet policy'] || fields['pets'] || '',
+    image:    image
+  });
+}
 
     return { intro, properties };
   }
