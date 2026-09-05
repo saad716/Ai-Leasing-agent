@@ -971,7 +971,7 @@
             ${p.pets ? `<div class="prop-pets">${escHtml(p.pets)}</div>` : ''}
             <div class="prop-actions">
               <button class="prop-btn view" onclick="showPropertyDetails('${key}')">View</button>
-              <button class="prop-btn book" onclick="sendMessage(${JSON.stringify('Book a tour for ' + (p.address || 'this property'))})">Book tour</button>
+<button class="prop-btn book" onclick="sendMessage('Book a tour for ' + '${escHtml(p.address || 'this property')}')">Book tour</button>
             </div>
           </div>
         </div>`;
